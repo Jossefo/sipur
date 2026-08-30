@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: sipur
+    runtime: static
+    buildCommand: "true"
+    staticPublishPath: .

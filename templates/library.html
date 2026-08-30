@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}הספרים שלי — סיפור{% endblock %}
+{% block content %}
+<section class="library-panel">
+  <p class="kicker">הספרייה</p>
+  <h1>הספרים שלי</h1>
+  <p class="lead">כל ספר שנוצר נשמר כאן, במכשיר הזה. אותו ספר לא נשמר פעמיים.</p>
+  <div class="library-grid" data-library></div>
+  <div class="library-empty" data-library-empty hidden>
+    <p>עוד אין ספרים. בואו נכתוב את הראשון.</p>
+    <a class="btn" href="{{ url_for('create_get') }}">לצור סיפור</a>
+  </div>
+</section>
+{% endblock %}

@@ -4,8 +4,11 @@
   <div class="hero-copy">
     <p class="kicker">סיפור לילה טוב, שנכתב עליהם</p>
     <h1>השבוע שלהם, בסיפור לפני השינה.</h1>
-    <p class="lead">שם, גיל, ושלושה דברים שקרו. סיפור מאויר בעברית, עם התחלה, אמצע, ולילה טוב.</p>
-    <a class="btn" href="{{ url_for('create_get') }}">לצור סיפור</a>
+    <p class="lead">שם, גיל, ושלושה דברים שקרו. סיפור מאויר בעברית, עם מוסר השכל חינוכי, התחלה, אמצע, ולילה טוב. אף ספר לא נולד פעמיים.</p>
+    <div class="hero-actions">
+      <a class="btn" href="{{ url_for('create_get') }}">לצור סיפור</a>
+      <a class="btn ghost" href="{{ url_for('library') }}">הספרים שלי</a>
+    </div>
   </div>
   <aside class="hero-card" aria-hidden="true">
     <svg class="hero-art" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
@@ -25,15 +28,15 @@
       <rect x="110" y="314" width="320" height="60" rx="22" fill="#c45c26"/>
     </svg>
     <p class="story-title">נועה והירח שלא מיהר</p>
-    <p class="story-meta">סיפור אחד, מהשבוע שלהם</p>
+    <p class="story-meta">ספר תמונות, מהשבוע שלהם, עם מוסר השכל</p>
   </aside>
 </section>
 <section class="quiet-steps">
   <h2>שלושה צעדים</h2>
   <div class="steps">
     <article class="card"><span class="num">01</span><h3>כותבים</h3><p>שם, גיל, ושלושה דברים קטנים מהשבוע.</p></article>
-    <article class="card"><span class="num">02</span><h3>נוצר סיפור</h3><p>חמישה עד שבעה עמודים, בעברית רכה, עם איורים.</p></article>
-    <article class="card"><span class="num">03</span><h3>קוראים במיטה</h3><p>כמו ספר תמונות. אפשר גם לשתף קישור.</p></article>
+    <article class="card"><span class="num">02</span><h3>נוצר ספר</h3><p>שישה עד שמונה עמודים, בעברית רכה, עם איורים ומוסר השכל.</p></article>
+    <article class="card"><span class="num">03</span><h3>קוראים במיטה</h3><p>נשמר ב״הספרים שלי״. אפשר גם לשתף קישור.</p></article>
   </div>
 </section>
 {% endblock %}

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}לצור סיפור — סיפור{% endblock %}
+{% block title %}סיפור חדש — סיפור{% endblock %}
 {% block content %}
 <section class="form-panel">
   <p class="kicker">השבוע שלהם</p>
-  <h1>שלושה דברים, וסיפור נולד.</h1>
-  <p class="lead">כל פרט נכנס לסיפור. לא תבנית זהה, לא אותו טקסט פעמיים.</p>
+  <h1>שלושה דברים, וספר נולד.</h1>
+  <p class="lead">כל פרט נכנס לעלילה. תבנית אחרת בכל פעם, מוסר השכל חינוכי, ואיורים חדשים.</p>
 
   {% if errors %}
   <ul class="errors" role="alert">
@@ -30,15 +30,15 @@
       <legend>שלושה דברים שקרו השבוע</legend>
       <label>
         <span>דבר ראשון</span>
-        <input name="event1" type="text" maxlength="120" required minlength="2" value="{{ values.event1 }}" placeholder="למשל: איבדה שן" />
+        <input name="event1" type="text" maxlength="120" required minlength="2" value="{{ values.event1 }}" placeholder="למשל: חלקתי צבע עם חבר" />
       </label>
       <label>
         <span>דבר שני</span>
-        <input name="event2" type="text" maxlength="120" required minlength="2" value="{{ values.event2 }}" placeholder="למשל: אפתה עם סבתא" />
+        <input name="event2" type="text" maxlength="120" required minlength="2" value="{{ values.event2 }}" placeholder="למשל: אפיתי עם סבתא" />
       </label>
       <label>
         <span>דבר שלישי</span>
-        <input name="event3" type="text" maxlength="120" required minlength="2" value="{{ values.event3 }}" placeholder="למשל: קצת פחדה מהחושך" />
+        <input name="event3" type="text" maxlength="120" required minlength="2" value="{{ values.event3 }}" placeholder="למשל: חיכיתי בסבלנות לתור" />
       </label>
     </fieldset>
     <button class="btn" type="submit">לכתוב את הסיפור</button>

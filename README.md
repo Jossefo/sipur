@@ -1,10 +1,12 @@
 # סיפור (Sipur)
 
-Personalized Hebrew bedtime stories. A child gets a 5–7 page illustrated picture-book
-story woven from their name, age, and three things that happened this week.
+Personalized Hebrew bedtime picture-books. A child gets a 6–8 page illustrated story
+woven from their name, age, and three things that happened this week — with a kind
+educational moral (מוסר השכל), never scary or mean.
 
-No API keys. Stories are generated on the server and encoded into a shareable URL,
-so they survive refreshes even on an ephemeral disk.
+No API keys. Stories are generated on the server from 250+ templates and encoded into
+a shareable URL, so they survive refreshes even on an ephemeral disk. The same book
+is never generated twice.
 
 ## Run locally
 
@@ -12,6 +14,7 @@ so they survive refreshes even on an ephemeral disk.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+python scripts/build_templates.py   # writes data/templates.json (already in the repo)
 python app.py
 ```
 
@@ -50,4 +53,11 @@ This is a **web service**, not a static site.
 - `GET /create` — story form
 - `POST /create` — generate and redirect to a shareable story URL
 - `GET /s/<token>` — picture-book reader (token holds the full story)
+- `GET /library` — הספרים שלי (client library)
 - `GET /health` — `{ok: true}`
+- `GET /api/catalog` — `{template_count, formats, themes}`
+- `POST /api/feedback` — `{token, rating, note, template_id}`
+- `GET /api/feedback` — last 50 notes (no auth in v1)
+
+Illustrations: each page has an original SVG placeholder, then a Pollinations image
+(`model=flux`, no API key) that fades in when loaded.

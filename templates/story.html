@@ -5,16 +5,44 @@
 <button class="btn ghost" type="button" data-share>לשתף קישור</button>
 {% endblock %}
 {% block content %}
-<article class="reader" data-reader data-pages="{{ pages|length }}">
+<article
+  class="reader"
+  data-reader
+  data-pages="{{ pages|length }}"
+  data-token="{{ token }}"
+  data-title="{{ story.title }}"
+  data-name="{{ story.name }}"
+  data-age="{{ story.age }}"
+  data-moral="{{ story.moral }}"
+  data-template="{{ story.template_id }}"
+  data-cover="{{ pages[0].image_url if pages else '' }}"
+>
   <header class="reader-head">
     <h1>{{ story.title }}</h1>
     <p class="story-meta">{{ story.name }}, {{ story.age }}</p>
   </header>
 
+  <div class="progress" aria-hidden="true"><span data-progress></span></div>
+
   {% for page in pages %}
   <section class="book-page{% if loop.first %} is-on{% endif %}" data-page="{{ loop.index0 }}" {% if not loop.first %}hidden{% endif %}>
-    <div class="page-art">{{ page.svg|safe }}</div>
+    <div class="page-art">
+      <div class="art-svg">{{ page.svg|safe }}</div>
+      {% if page.image_url %}
+      <img class="art-img" src="{{ page.image_url }}" alt="" loading="{{ 'eager' if loop.first else 'lazy' }}" data-fade-art />
+      {% endif %}
+    </div>
     <p class="page-text">{{ page.text }}</p>
+    {% if page.kind == 'moral_landing' or loop.last %}
+      {% if story.moral and (page.kind == 'moral_landing' or loop.last) %}
+      {% if page.kind == 'moral_landing' %}
+      <p class="page-moral">מוסר השכל: {{ story.moral }}</p>
+      {% endif %}
+      {% endif %}
+    {% endif %}
+    {% if loop.last and page.kind != 'moral_landing' and story.moral %}
+    <p class="page-moral">מוסר השכל: {{ story.moral }}</p>
+    {% endif %}
     <p class="page-num">{{ loop.index }} / {{ pages|length }}</p>
   </section>
   {% endfor %}
@@ -29,8 +57,23 @@
     <button class="btn" type="button" data-next>הבא</button>
   </nav>
 
+  <form class="feedback" data-feedback>
+    <p class="feedback-label">איך היה הספר?</p>
+    <div class="feedback-row">
+      <label><input type="radio" name="rating" value="אהבתי" required /> אהבתי</label>
+      <label><input type="radio" name="rating" value="פחות אהבתי" /> פחות אהבתי</label>
+    </div>
+    <label class="feedback-note">
+      <span>רוצים להוסיף מילה? (לא חובה)</span>
+      <input type="text" name="note" maxlength="500" />
+    </label>
+    <button class="btn ghost" type="submit">לשלוח משוב</button>
+    <p class="share-status" data-feedback-status hidden></p>
+  </form>
+
   <p class="reader-actions">
-    <a class="btn ghost" href="{{ url_for('create_get') }}">לצור סיפור נוסף</a>
+    <a class="btn ghost" href="{{ url_for('library') }}">הספרים שלי</a>
+    <a class="btn" href="{{ url_for('create_get') }}">לצור סיפור נוסף</a>
   </p>
   <p class="share-status" data-share-status hidden></p>
 </article>

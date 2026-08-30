@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import random
+from urllib.parse import quote
 from xml.sax.saxutils import escape
 
 
@@ -20,6 +21,14 @@ PALETTES = (
     {"sky1": "#fde7d2", "sky2": "#c45c26", "ink": "#2b2218", "warm": "#fffaf4", "accent": "#9a4318", "deep": "#6b3a28", "soft": "#f0c9a8"},
     # sea dusk
     {"sky1": "#dce8ea", "sky2": "#5d7a86", "ink": "#243038", "warm": "#f7f1e8", "accent": "#d08a4c", "deep": "#3a5560", "soft": "#b7cdd3"},
+    # desert honey
+    {"sky1": "#f8e0b8", "sky2": "#d08a4c", "ink": "#3a2a18", "warm": "#fff4d8", "accent": "#c45c26", "deep": "#8a5a32", "soft": "#f0d09a"},
+    # shabbat cream
+    {"sky1": "#fff6ea", "sky2": "#e6c98a", "ink": "#3a2a22", "warm": "#fffaf4", "accent": "#c9a227", "deep": "#5c3d3a", "soft": "#f3e2b0"},
+    # orchard
+    {"sky1": "#f3ecd0", "sky2": "#7a9a5a", "ink": "#2c3326", "warm": "#fffaf4", "accent": "#d9783a", "deep": "#4a5a40", "soft": "#c5d1a8"},
+    # bakery
+    {"sky1": "#fde7d2", "sky2": "#c9846a", "ink": "#2b2218", "warm": "#fff6ea", "accent": "#9a4318", "deep": "#6b3a28", "soft": "#f0c9a8"},
 )
 
 
@@ -135,6 +144,9 @@ def _companion(kind: str, rng: random.Random, pal: dict) -> str:
           <ellipse cx="0" cy="40" rx="40" ry="8" fill="{pal["warm"]}" opacity="0.8"/>
           <circle cx="0" cy="18" r="10" fill="{pal["warm"]}" opacity="0.9"/>
         </g>'''
+    extra = _extra_companion(kind, x, y, pal)
+    if extra:
+        return extra
     # paper star
     return f'''
     <g transform="translate({x},{y}) rotate({rng.randint(-20,20)})">
@@ -265,12 +277,16 @@ def _scene_body(scene: str, rng: random.Random, pal: dict, name: str) -> str:
         bits.append(_moon(400, 150, pal, wax=False))
         bits.append(_stars(rng, 22, pal, 30, 260))
         bits.append(_figure(240, 300, pal, sit=True))
-    else:  # garden / default
-        bits.append(_tree(rng, 140, 300, pal))
-        bits.append(_tree(rng, 250, 320, pal))
-        bits.append(_tree(rng, 660, 290, pal))
-        bits.append(_figure(420, 250, pal))
-        bits.append(_moon(520, 90, pal, wax=rng.random() > 0.5))
+    else:
+        extra = _theme_scene(scene, rng, pal)
+        if extra:
+            bits.extend(extra)
+        else:
+            bits.append(_tree(rng, 140, 300, pal))
+            bits.append(_tree(rng, 250, 320, pal))
+            bits.append(_tree(rng, 660, 290, pal))
+            bits.append(_figure(420, 250, pal))
+            bits.append(_moon(520, 90, pal, wax=rng.random() > 0.5))
 
     door = escape(name[:1] or "ס")
     bits.append(
@@ -306,3 +322,182 @@ def page_svg(page: dict, name: str, seed: int, companion: str, index: int) -> st
   {body}
   {friend}
 </svg>'''
+
+
+def _extra_companion(kind: str, x: int, y: int, pal: dict) -> str:
+    if kind == "turtle":
+        return (
+            f'<g transform="translate({x},{y})">'
+            f'<ellipse cx="0" cy="8" rx="26" ry="14" fill="{pal["deep"]}"/>'
+            f'<circle cx="18" cy="0" r="10" fill="{pal["accent"]}"/>'
+            f'<circle cx="22" cy="-2" r="1.4" fill="{pal["ink"]}"/>'
+            f"</g>"
+        )
+    if kind == "cat":
+        return (
+            f'<g transform="translate({x},{y})">'
+            f'<ellipse cx="0" cy="8" rx="22" ry="12" fill="{pal["deep"]}"/>'
+            f'<circle cx="16" cy="-4" r="10" fill="{pal["deep"]}"/>'
+            f'<path d="M8,-10 L10,-24 L18,-6 Z" fill="{pal["accent"]}"/>'
+            f'<path d="M18,-10 L28,-24 L30,-4 Z" fill="{pal["accent"]}"/>'
+            f"</g>"
+        )
+    if kind == "firefly":
+        return (
+            f'<g transform="translate({x},{y})">'
+            f'<circle cx="0" cy="0" r="14" fill="{pal["warm"]}" opacity="0.55"/>'
+            f'<circle cx="0" cy="0" r="6" fill="{pal["accent"]}"/>'
+            f"</g>"
+        )
+    if kind == "cloud":
+        yy = min(y, 160)
+        return (
+            f'<g transform="translate({x},{yy})">'
+            f'<ellipse cx="0" cy="0" rx="36" ry="16" fill="{pal["warm"]}"/>'
+            f'<ellipse cx="-18" cy="4" rx="18" ry="12" fill="{pal["warm"]}"/>'
+            f'<ellipse cx="18" cy="4" rx="16" ry="11" fill="{pal["warm"]}"/>'
+            f"</g>"
+        )
+    if kind == "rabbit":
+        return (
+            f'<g transform="translate({x},{y})">'
+            f'<ellipse cx="0" cy="10" rx="16" ry="12" fill="{pal["warm"]}"/>'
+            f'<circle cx="10" cy="-2" r="9" fill="{pal["warm"]}"/>'
+            f'<path d="M4,-8 L2,-28 L10,-8" fill="{pal["accent"]}"/>'
+            f'<path d="M16,-8 L20,-28 L22,-6" fill="{pal["accent"]}"/>'
+            f"</g>"
+        )
+    if kind == "owl":
+        return (
+            f'<g transform="translate({x},{y})">'
+            f'<ellipse cx="0" cy="6" rx="18" ry="20" fill="{pal["deep"]}"/>'
+            f'<circle cx="-6" cy="0" r="5" fill="{pal["warm"]}"/>'
+            f'<circle cx="6" cy="0" r="5" fill="{pal["warm"]}"/>'
+            f'<circle cx="-6" cy="0" r="2" fill="{pal["ink"]}"/>'
+            f'<circle cx="6" cy="0" r="2" fill="{pal["ink"]}"/>'
+            f"</g>"
+        )
+    if kind == "snail":
+        return (
+            f'<g transform="translate({x},{y})">'
+            f'<path d="M-16,10 C-4,10 8,10 20,6" stroke="{pal["accent"]}" stroke-width="6" fill="none"/>'
+            f'<circle cx="-2" cy="0" r="12" fill="{pal["deep"]}"/>'
+            f'<circle cx="-2" cy="0" r="6" fill="{pal["warm"]}" opacity="0.5"/>'
+            f"</g>"
+        )
+    return ""
+
+
+def _theme_scene(scene: str, rng: random.Random, pal: dict) -> list[str] | None:
+    bits: list[str] = []
+    if scene in {"forest", "orchard"}:
+        bits.append(_tree(rng, 120, 290, pal))
+        bits.append(_tree(rng, 230, 320, pal))
+        bits.append(_tree(rng, 520, 300, pal))
+        bits.append(_tree(rng, 680, 280, pal))
+        bits.append(_figure(400, 250, pal))
+        bits.append(_moon(600, 90, pal, wax=True))
+        return bits
+    if scene in {"sea", "riverbank"}:
+        bits.append(
+            f'<path d="M0,300 C120,260 200,340 320,300 C460,250 560,340 800,290 L800,500 L0,500 Z" fill="{pal["sky2"]}" opacity="0.8"/>'
+        )
+        bits.append(_moon(620, 110, pal, wax=False))
+        bits.append(_figure(200, 250, pal))
+        return bits
+    if scene in {"city-balcony", "rooftop-evening"}:
+        bits.append(f'<rect x="40" y="220" width="720" height="18" fill="{pal["deep"]}" opacity="0.45"/>')
+        bits.append(f'<rect x="80" y="160" width="90" height="70" rx="6" fill="{pal["warm"]}" opacity="0.7"/>')
+        bits.append(f'<rect x="200" y="140" width="70" height="90" rx="6" fill="{pal["accent"]}" opacity="0.45"/>')
+        bits.append(_figure(360, 230, pal, sit=True))
+        bits.append(_moon(140, 90, pal))
+        return bits
+    if scene in {"grandparent-kitchen", "bakery"}:
+        bits.append(f'<rect x="40" y="260" width="720" height="24" fill="{pal["deep"]}" opacity="0.4"/>')
+        bits.append(_cake(pal))
+        bits.append(_figure(430, 220, pal, scale=0.9))
+        bits.append(_window(pal, 560, 70))
+        return bits
+    if scene in {"schoolyard", "park", "garden"}:
+        bits.append(_tree(rng, 140, 300, pal))
+        bits.append(_tree(rng, 660, 290, pal))
+        bits.append(_figure(420, 250, pal))
+        bits.append(_moon(520, 90, pal))
+        return bits
+    if scene == "desert":
+        bits.append(
+            f'<path d="M0,340 C160,280 280,380 460,320 C620,270 740,350 800,310 L800,500 L0,500 Z" fill="{pal["accent"]}" opacity="0.55"/>'
+        )
+        bits.append(_moon(640, 100, pal, wax=False))
+        bits.append(_figure(300, 260, pal))
+        return bits
+    if scene == "rainy-window":
+        bits.append(_window(pal))
+        rain = []
+        for _ in range(36):
+            x = rng.randint(20, 780)
+            y = rng.randint(20, 260)
+            rain.append(f'<path d="M{x},{y} l4 18" stroke="{pal["deep"]}" stroke-width="2" opacity="0.35"/>')
+        bits.append("".join(rain))
+        bits.append(_figure(250, 300, pal, sit=True))
+        return bits
+    if scene == "shabbat-table":
+        bits.append(f'<rect x="140" y="300" width="420" height="18" rx="4" fill="{pal["deep"]}" opacity="0.45"/>')
+        bits.append(f'<rect x="160" y="250" width="380" height="56" rx="8" fill="{pal["warm"]}"/>')
+        bits.append(f'<rect x="230" y="210" width="10" height="40" fill="{pal["deep"]}"/>')
+        bits.append(f'<rect x="430" y="210" width="10" height="40" fill="{pal["deep"]}"/>')
+        bits.append(_figure(300, 200, pal, sit=True))
+        bits.append(_moon(160, 90, pal))
+        return bits
+    if scene in {"stars"}:
+        bits.append(_moon(400, 150, pal, wax=False))
+        bits.append(_stars(rng, 22, pal, 30, 260))
+        bits.append(_figure(240, 300, pal, sit=True))
+        return bits
+    if scene == "library-nook":
+        for i in range(4):
+            bits.append(
+                f'<rect x="{90 + i * 90}" y="140" width="70" height="220" rx="6" fill="{pal["deep"]}" opacity="{0.35 + i * 0.08}"/>'
+            )
+        bits.append(_figure(560, 250, pal, sit=True))
+        return bits
+    if scene == "neighborhood-market":
+        bits.append(f'<rect x="80" y="200" width="180" height="140" rx="8" fill="{pal["accent"]}" opacity="0.5"/>')
+        bits.append(f'<rect x="300" y="180" width="160" height="160" rx="8" fill="{pal["deep"]}" opacity="0.4"/>')
+        bits.append(_figure(400, 250, pal))
+        return bits
+    if scene == "mountain-path":
+        bits.append(
+            f'<path d="M0,360 L180,160 L320,300 L500,120 L800,340 L800,500 L0,500 Z" fill="{pal["deep"]}" opacity="0.35"/>'
+        )
+        bits.append(_figure(360, 260, pal))
+        bits.append(_moon(640, 90, pal))
+        return bits
+    return None
+
+
+def page_seed(seed: int, index: int, prompt: str) -> int:
+    h = hashlib.sha256(f"{seed}:{index}:{prompt}".encode("utf-8")).digest()
+    return int.from_bytes(h[:4], "big") % 1_000_000_000
+
+
+def page_image_url(page: dict, seed: int, index: int, age: int = 6) -> str:
+    prompt = (page.get("pr") or page.get("prompt") or "").strip()
+    required = (
+        "children's picture book illustration, watercolor, warm light, child-safe, "
+        "no text, no watermark, not photorealistic, not horror"
+    )
+    low = prompt.lower()
+    if "picture book" not in low or "watercolor" not in low:
+        prompt = f"{required}, {prompt}".strip(", ")
+        low = prompt.lower()
+    if "child-safe" not in low:
+        prompt = prompt + ", child-safe"
+    prompt = prompt + f", child around age {age}"
+    encoded = quote(prompt, safe="")
+    det = page_seed(int(seed or 1), index, prompt)
+    return (
+        f"https://image.pollinations.ai/prompt/{encoded}"
+        f"?width=1024&height=640&seed={det}&nologo=true&model=flux"
+    )
+

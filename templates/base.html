@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}סיפור — סיפור לילה טוב, שנכתב עליהם{% endblock %}</title>
-  <meta name="description" content="{% block description %}כותבים שם, גיל ושלושה דברים מהשבוע. מקבלים סיפור מאויר בעברית לקריאה יחד במיטה.{% endblock %}" />
+  <meta name="description" content="{% block description %}כותבים שם, גיל ושלושה דברים מהשבוע. מקבלים סיפור מאויר בעברית, עם מוסר השכל חינוכי, לקריאה יחד במיטה.{% endblock %}" />
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,6 +15,11 @@
   <div class="wrap">
     <header class="site-header">
       <a class="logo" href="{{ url_for('home') }}" aria-label="סיפור, חזרה לבית">סיפור</a>
+      <nav class="site-nav" aria-label="ניווט ראשי">
+        <a href="{{ url_for('home') }}">בית</a>
+        <a href="{{ url_for('library') }}">הספרים שלי</a>
+        <a href="{{ url_for('create_get') }}">סיפור חדש</a>
+      </nav>
       {% block header_extra %}{% endblock %}
     </header>
     <main>

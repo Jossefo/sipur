@@ -1,15 +1,28 @@
-"""Compose unique Hebrew bedtime stories from a child's week."""
+"""Compose unique Hebrew bedtime stories from templates and a child's week."""
 
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import random
 import re
 import secrets
 import zlib
-from typing import Iterable
+from pathlib import Path
+from typing import Any, Iterable
 
+from story_catalog import (
+    COMPANIONS,
+    FORMATS,
+    MORALS,
+    THEMES,
+    companion_by_id,
+    make_template,
+)
+
+ROOT = Path(__file__).resolve().parent
+TEMPLATES_PATH = ROOT / "data" / "templates.json"
 
 FEMALE_NAMES = {
     "נועה", "מאיה", "תמר", "שירה", "יעל", "דנה", "מיכל", "נעמי", "אביגיל",
@@ -30,128 +43,46 @@ MALE_NAMES = {
     "אלי", "אמיר", "אסף", "אריק", "בועז", "בן", "בני", "גד", "דוד",
     "הלל", "זאב", "חיים", "טל", "יהונתן", "יואב", "יונה", "יעקב", "יצחק",
     "ליאם", "מיכאל", "מתן", "נדב", "נועם", "ניר", "נתן", "עודד", "עילי",
-    "עמוס", "ערן", "פאי", "צבי", "רון", "רועי", "רם", "שאול", "שמואל",
+    "עמוס", "ערן", "פאי", "צבי", "רון", "רם", "שאול", "שמואל",
     "תום", "תמיר", "עומרי", "אור", "סהר", "ים", "דור", "הראל", "לביא",
-    "אריאל", "יובל", "איליי", "אלעד", "גיא", "הוד", "זוהר", "חגי",
+    "אריאל", "יובל", "איליי", "אלעד", "הוד", "זוהר", "חגי",
 }
 
 FEMALE_ENDINGS = ("ה", "ית", "יה", "ת")
 
-COMPANIONS = (
-    {"id": "moon", "he": "הירח", "he_the": "הירח"},
-    {"id": "fox", "he": "שועל קטן", "he_the": "השועל הקטן"},
-    {"id": "bird", "he": "ינשוף קטן", "he_the": "הינשוף הקטן"},
-    {"id": "star", "he": "כוכב נייר", "he_the": "כוכב הנייר"},
-    {"id": "lamp", "he": "פנס לילה", "he_the": "פנס הלילה"},
-)
+# Process-wide uniqueness: same book (fingerprint) is never emitted twice.
+_produced_fingerprints: set[str] = set()
+TEMPLATES: list[dict[str, Any]] = []
 
-TIMES = (
-    "בערב הרך",
-    "בשעת הלילה הכחולה",
-    "אחרי המקלחת, כשהשיער עוד לח",
-    "כשהווילון זז לאט",
-    "כשהבית כבר דיבר בלחש",
-    "כשהשעון במסדרון פסע לאטו",
-    "כשהאור במטבח כבה אחרון",
-)
 
-PLACES = (
-    "על סף החלון",
-    "על שולחן העץ הקטן",
-    "ליד המיטה עם השמיכה המקומטת",
-    "על אדן האבן החמים",
-    "בפינה שבין הארון לספרים",
-    "מתחת למנורה העגולה",
-)
+def load_templates(path: Path | None = None) -> list[dict[str, Any]]:
+    p = path or TEMPLATES_PATH
+    if not p.is_file():
+        from story_catalog import build_all_templates
 
-MOODS = (
-    "שקט כמו שמיכה",
-    "מתוק כמו תפוח שנשאר בצלחת",
-    "רחב כמו חלון פתוח",
-    "עדין כמו גרב שנשמטה",
-    "זהוב כמו פירור של דבש",
-    "איטי כמו סיפור שחוזר פעם שנייה",
-)
+        return build_all_templates()
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(data, list) or len(data) < 250:
+        raise RuntimeError(f"templates catalog too small: {p}")
+    return data
 
-OPENING_FRAMES = (
-    "{time} ישב{sf} {name} {age_phrase} {place}. {companion} בא והתיישב בלי לבקש רשות, כי בלילות כאלה לא צריך רשות — רק אוזן.",
-    "{time} {name} {age_phrase} קיפל{sf} את היום כמו מפה. {companion} המתין {place}, והלילה הריח {mood}.",
-    "ל{name} {age_phrase} היה לילה אחד שהתחיל לאט. {time} {companion} הגיע {place} ואמר: {come} נשמע מה השבוע השאיר.",
-    "{name} {age_phrase} כבר לבש{sf} פיג׳מה כש{companion} נשען {place}. {time} העולם היה {mood}.",
-    "השבוע של {name} {age_phrase} עוד היה חם בכיסים. {time} {companion} מצא אות{op} {place} ושאל בקול של נוצה: מה קרה?",
-    "{time} האור התקצר, ו{name} {age_phrase} שמע{sf} איך הבית נושם. {companion} צייר עיגול קטן {place} ואמר: כאן מתחיל הסיפור.",
-    "לא היה צריך דרקון. ל{name} {age_phrase} היה שבוע. {time} {companion} פתח דלת דמיונית {place}, והלילה נכנס יחף.",
-    "{name} {age_phrase} חשב{sf} שהיום נגמר, אבל {companion} ידע אחרת. {time} הם ישבו {place}, והשבוע התחיל לדבר.",
-)
 
-BRIDGE_FRAMES = (
-    "לפני שנכנסו למעמקי השמיכה, {companion} ביקש שלושה דברים קטנים — לא אוצרות, רק מה שקרה באמת.",
-    "{name} שטף{sf} את היום מהידיים, אבל משהו נשאר מתחת לציפורניים: שלושה רגעים.",
-    "הלילה לא חיפש הרפתקה גדולה. הוא חיפש את השבוע של {name}, בדיוק כמו שהוא היה.",
-    "{companion} אמר שסיפור טוב לא ממציאים מהירח. אותו אוספים מהחדר, מהגן, מהלב.",
-    "בין כוס המים לכרית, {name} מצא{sf} כיס פנימי. שם חיכו שלושה דברים.",
-)
+def _ensure_catalog() -> list[dict[str, Any]]:
+    global TEMPLATES
+    if not TEMPLATES:
+        TEMPLATES = load_templates()
+    return TEMPLATES
 
-EVENT_FRAMES = (
-    "ואז קרה דבר ראשון: {event}. {name} עצר{sf} רגע, כאילו מישהו הדליק נר קטן בתוך הגוף.",
-    "בשבוע הזה {event} — לא סתם שורה ביומן, אלא רגע ש{name} לקח{sf} ביד כמו אבן חלקה מהים.",
-    "יש דברים שעוברים לידם ויש דברים שנשארים. {event}: זה נשאר. {companion} הנהן, כי גם הוא הרגיש את המשקל הקל.",
-    "״{tell} לי לאט,״ ביקש {companion}. {name} אמר{sf}: {event}. המילים התיישבו {place} ולא מיהרו ללכת.",
-    "פתאום נזכר{sf} {name} ש{event}. זה לא היה רעש גדול. זה היה לחישה עם צבע.",
-    "אם השבוע היה שביל, כאן היה פיתול: {event}. {name} הלך{sf} דרכו בזהירות, גאה קצת, מופתע{s_adj} קצת.",
-    "העולם עשה טובה קטנה והביא את זה: {event}. {name} שמע{sf} איך הלב עונה ״הנה, גם אני הייתי שם.״",
-    "בין ארוחת הערב ללילה נשאר טעם. הטעם היה: {event}. {companion} אמר שטעמים כאלה שומרים מתחת לכרית.",
-    "לא כולם שמו לב, אבל {name} כן. {event}. מאז היה באוויר משהו {mood}.",
-    "כמו דף שמתקפל באמצע, כך היה הרגע שבו {event}. {name} שמר{sf} את הקיפול.",
-    "ועוד פלא בגובה ילד: {event}. {name} {age_phrase} לא צריך{sf} יותר מזה כדי שהשבוע יקבל שם.",
-    "בבוקר או בצהריים או ממש לפני השקיעה — {event}. עכשיו, בלילה, {name} מחזיר{sf} את זה אל הסיפור כמו ציפור אל הקן.",
-)
 
-ARC_FRAMES = (
-    "שלושה דברים ישבו עכשיו על השמיכה של {name}: {e1}, וגם {e2}, וגם {e3}. הם לא היו אותו דבר, ובכל זאת החזיקו ידיים.",
-    "{name} ראה{sf} איך השבוע מתקפל: מ{e1}, דרך {e2}, עד {e3}. הקפל יצא רך. הקפל יצא של{poss}.",
-    "קצת גאווה, קצת פליאה, קצת רוך — כך הרגיש הלב אחרי ש{e1}, ואחרי ש{e2}, ואחרי ש{e3}. {companion} לחש: זה קשת. קשת קטנה של שבוע.",
-    "אם מישהו היה שואל את {name} {age_phrase} מה היה השבוע, היה אפשר לענות בשלוש נשימות: {e1}. {e2}. {e3}. ואז לחייך.",
-    "הדברים לא נעלמו. {e1} נשאר כמו חלון. {e2} נשאר כמו ריח. {e3} נשאר כמו יד על הכתף. {name} הבין{sf} שאפשר לקחת אותם אל השינה.",
-    "בין שלושת הרגעים נמתח חוט זהוב. {name} משך{sf} בו בעדינות, וכל מה שהיה — {e1}, {e2}, {e3} — בא והתיישב קרוב.",
-)
-
-ENDING_FRAMES = (
-    "עכשיו העיניים של {name} כבדות כמו דבש. {companion} מנמיך את הקול. מחר מחכה מאחורי הווילון בלי לדחוף. לילה טוב, {name}.",
-    "הלילה פרש שמיכה על כל מה שקרה. {name} {age_phrase} נשם{sf} פעם אחת ארוכה. {companion} נשאר משמר קטן ליד החלון. לילה טוב.",
-    "אין צורך לסגור את השבוע במנעול. {name} מניח{sf} אותו ליד הכרית, ו{companion} שומר שלא יברח. השינה באה יחפה. לילה טוב, {name}.",
-    "החושך כבר לא היה חושך. הוא היה חדר. {name} חייך{sf} אל {companion}, ואל שלושת הרגעים שישנו בצד. מחר יתחיל לאט. לילה טוב.",
-    "{companion} כיבה כוכב אחד מיותר, השאיר בדיוק כמה שצריך. {name} {age_phrase} נכנע{sf} לרוך. הסיפור נשאר באוויר עוד רגע, ואז גם הוא ישן.",
-    "״תודה שסיפרת,״ אמר {companion}. {name} לחש{sf} תודה בחזרה, בלי מילים. החלון שמר על הירח, והירח שמר על {name}. לילה טוב.",
-    "השבוע התקפל לגודל של לחישה. {name} שם{sf} את הלחישה בכיס הפיג׳מה. {companion} נופף, והמיטה עשתה מקום. לילה טוב, {name}. לילה טוב, שבוע קטן.",
-    "אין סוף גדול. יש רק עפעפיים. {name} {age_phrase} נרדם{sf} בתוך הסיפור כמו בתוך שרוול חם. {companion} לוחש לרוח שתשמור על {name}. לילה טוב.",
-)
-
-TITLES = (
-    "{name} והשבוע שהפך לסיפור",
-    "הלילה של {name}",
-    "{name} והירח שלא מיהר",
-    "שלושה פלאים ל{name}",
-    "{name} מקפל{sf} את היום",
-    "סיפור לילה טוב ל{name}",
-    "{name} ו{companion_he} של השבוע",
-    "הכיס החם של {name}",
-    "{name}, {age}, ושלושה דברים",
-    "לפני השינה, {name}",
-    "{name} והאור הקטן בכיס",
-    "איך {name} אסף{sf} את השבוע",
-)
-
-SPARKS = (
-    "מישהו במסדרון צעד כמו חתול.",
-    "ריח סבון נשאר באוויר עוד רגע.",
-    "גלגל של אוטו רחוק אמר לילה טוב ראשון.",
-    "הגרביים המזווגות חיכו על הכיסא כמו שני חברים.",
-    "הספר על המדף נזכר שהוא גם היה פעם יום.",
-    "טיפה אחרונה בברז החליטה לא ליפול.",
-    "הצל של הווילון רקד בלי מוזיקה.",
-    "כוכב אחד מצמץ מאוחר, כמו ילד בגן.",
-)
+def catalog_stats() -> dict[str, Any]:
+    cat = _ensure_catalog()
+    formats = sorted({t.get("format") or "" for t in cat if t.get("format")})
+    themes = sorted({t.get("theme") or "" for t in cat if t.get("theme")})
+    return {
+        "template_count": len(cat),
+        "formats": formats,
+        "themes": themes,
+    }
 
 
 def guess_gender(name: str, rng: random.Random) -> str:
@@ -219,19 +150,26 @@ class Voice:
             lambda m: self.word(m.group(1)),
             template,
         )
-        return template.format(
-            sf=self.sf,
-            op=self.op,
-            s_adj=self.s_adj,
-            poss=poss(self.gender),
-            come=self.come,
-            tell=self.tell,
+        mapping = {
+            "sf": self.sf,
+            "op": self.op,
+            "s_adj": self.s_adj,
+            "poss": poss(self.gender),
+            "come": self.come,
+            "tell": self.tell,
             **kwargs,
-        )
+        }
+
+        class _Safe(dict):
+            def __missing__(self, key):
+                return "{" + key + "}"
+
+        return template.format_map(_Safe(mapping))
 
 
 def _clean(text: str, limit: int) -> str:
     collapsed = " ".join((text or "").split())
+    collapsed = collapsed.replace("{", "(").replace("}", ")")
     return collapsed[:limit].strip()
 
 
@@ -258,24 +196,30 @@ def validate_input(name: str, age, events: Iterable[str]) -> list[str]:
 
 def story_plain_text(story: dict) -> str:
     pages = story.get("pages") or []
-    chunks = [story.get("title") or ""]
+    chunks = [story.get("title") or "", story.get("moral") or ""]
     chunks.extend(p.get("t") or p.get("text") or "" for p in pages)
     return "\n".join(chunks)
 
 
-def _pick_scene(text: str, page_kind: str) -> str:
-    if page_kind == "open":
-        return "window"
-    if page_kind == "bridge":
-        return "hallway"
-    if page_kind == "arc":
-        return "blanket"
-    if page_kind == "end":
+def make_fingerprint(name: str, age: int, events: list[str], template_id: str) -> str:
+    norm_name = " ".join((name or "").split()).casefold()
+    norm_events = "|".join(" ".join((e or "").split()).casefold() for e in events[:3])
+    raw = f"{norm_name}|{int(age)}|{norm_events}|{template_id}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _pick_scene(text: str, page_kind: str, theme: str) -> str:
+    if page_kind in {"opening"}:
+        return theme or "window"
+    if page_kind in {"turning"}:
+        return theme or "blanket"
+    if page_kind in {"moral_landing"}:
+        return theme or "garden"
+    if page_kind in {"bedtime_close"}:
         return "bedtime"
     keys = (
-        (("שן", "שיניים", "שן"), "tooth"),
+        (("שן", "שיניים"), "tooth"),
         (("עוגה", "אפה", "אפינו", "סבתא", "מטבח", "בצק", "עוגי"), "kitchen"),
-        (("חושך", "פחד", "מפחיד", "צל"), "nightlight"),
         (("כלב", "גורה", "כלבלב"), "dog"),
         (("חתול", "חתלתול"), "cat"),
         (("ים", "בריכה", "מים", "שחה", "גלים"), "water"),
@@ -286,30 +230,127 @@ def _pick_scene(text: str, page_kind: str) -> str:
         (("יום הולדת", "עוגת", "בלון", "מתנה"), "party"),
         (("כוכב", "ירח", "שמיים"), "sky"),
         (("סבא", "סבתא", "משפחה"), "kitchen"),
-        (("יער", "עץ", "עצים", "טיול"), "garden"),
+        (("יער", "עץ", "עצים", "טיול"), "forest"),
     )
     for words, scene in keys:
         if any(w in text for w in words):
             return scene
-    return "garden"
+    return theme or "garden"
 
 
-def generate_story(name: str, age: int, events: list[str], rng: random.Random | None = None) -> dict:
-    """Return a 5–7 page story dict. Two calls without a shared rng will differ."""
+def _page_prompt(base: str, kind: str, age: int, event: str = "") -> str:
+    extras = {
+        "opening": "gentle introduction at the start of evening, child arriving in the scene",
+        "event_1": "first story moment, child noticing something small and kind",
+        "event_2": "middle of the story, warm narrative scene",
+        "event_3": "third story moment, child holding a memory",
+        "turning": "quiet turning point, child realizing something gentle",
+        "moral_landing": "warm moral landing, peaceful understanding, no lecturing",
+        "bedtime_close": "bedtime close, child in bed, very calm, nightlight glow",
+        "bridge": "a quiet in-between moment on the way through the story",
+    }
+    bit = extras.get(kind, "a warm story moment")
+    ev = ("scene suggesting: " + event[:80]) if event else ""
+    return (
+        f"{base}, {bit} {ev}, child around age {age}, "
+        "children's picture book illustration, watercolor, warm light, child-safe, "
+        "no text, no watermark, not photorealistic, not horror"
+    )
+
+
+def evolve_template(base: dict[str, Any], salt: str | int) -> dict[str, Any]:
+    """Synthesize a new template by swapping format + theme + moral, and persist it."""
+    cat = _ensure_catalog()
+    rng = random.Random(str(salt))
+    fmt_id = base.get("format")
+    theme_id = base.get("theme")
+    moral_he = base.get("moral_he")
+    new_fmt = rng.choice([f for f in FORMATS if f["id"] != fmt_id] or FORMATS)
+    new_theme = rng.choice([t for t in THEMES if t["id"] != theme_id] or THEMES)
+    new_moral = rng.choice([m for m in MORALS if m["he"] != moral_he] or MORALS)
+    companion = companion_by_id(base.get("companion") or "moon")
+    if rng.random() > 0.4:
+        companion = rng.choice(COMPANIONS)
+    age_min = int(base.get("age_min") or 3)
+    age_max = int(base.get("age_max") or 9)
+    serial = 9000 + (abs(hash(str(salt))) % 90000)
+    extra = re.sub(r"[^a-zA-Z0-9_-]+", "", str(salt))[:24] or "x"
+    tmpl = make_template(
+        new_theme,
+        new_fmt,
+        new_moral,
+        companion,
+        variant=rng.randrange(3),
+        age_min=age_min,
+        age_max=age_max,
+        serial=serial,
+        extra_id=extra,
+    )
+    existing = {t["id"] for t in cat}
+    if tmpl["id"] in existing:
+        tmpl["id"] = tmpl["id"] + f"-{rng.randint(1, 10**9)}"
+    cat.append(tmpl)
+    return tmpl
+
+
+def _fits_age(t: dict[str, Any], age: int) -> bool:
+    return int(t.get("age_min") or 3) <= age <= int(t.get("age_max") or 9)
+
+
+def pick_template(
+    age: int,
+    name: str,
+    events: list[str],
+    rng: random.Random,
+    used_template_ids: set[str] | None = None,
+    used_fingerprints: set[str] | None = None,
+) -> dict[str, Any]:
+    cat = _ensure_catalog()
+    used_tids = set(used_template_ids or [])
+    used_fps = set(used_fingerprints or []) | _produced_fingerprints
+    candidates: list[dict[str, Any]] = []
+    for t in cat:
+        if not _fits_age(t, age):
+            continue
+        if t["id"] in used_tids:
+            continue
+        fp = make_fingerprint(name, age, events, t["id"])
+        if fp in used_fps:
+            continue
+        candidates.append(t)
+    if candidates:
+        return rng.choice(candidates)
+    bases = [t for t in cat if _fits_age(t, age)] or cat
+    base = rng.choice(bases)
+    salt = f"{rng.randint(1, 10**9)}-{name[:8]}"
+    return evolve_template(base, salt)
+
+
+def generate_story(
+    name: str,
+    age: int,
+    events: list[str],
+    rng: random.Random | None = None,
+    used_template_ids: Iterable[str] | None = None,
+    used_fingerprints: Iterable[str] | None = None,
+) -> dict[str, Any]:
+    """Return a 6–8 page story dict. Same fingerprint is never produced twice."""
     rng = rng or random.Random(secrets.randbits(64))
     name = _clean(name, 40)
     age = int(age)
-    events = [_clean(e, 120) for e in events[:3]]
+    events = [_clean(e, 120) for e in list(events)[:3]]
     if len(events) != 3 or not name:
         raise ValueError("name, age, and 3 events are required")
 
+    used_tids = set(used_template_ids or [])
+    used_fps = set(used_fingerprints or [])
+    template = pick_template(age, name, events, rng, used_tids, used_fps)
+
     gender = guess_gender(name, rng)
     voice = Voice(gender)
-    companion = rng.choice(COMPANIONS)
-    time = rng.choice(TIMES)
-    place = rng.choice(PLACES)
-    mood = rng.choice(MOODS)
+    companion = companion_by_id(template.get("companion") or "moon")
     seed = rng.randint(1, 2**31 - 1)
+    fp = make_fingerprint(name, age, events, template["id"])
 
     ctx = {
         "name": name,
@@ -317,56 +358,93 @@ def generate_story(name: str, age: int, events: list[str], rng: random.Random | 
         "age_phrase": age_phrase(age, gender),
         "companion": companion["he_the"],
         "companion_he": companion["he"],
-        "time": time,
-        "place": place,
-        "mood": mood,
-        "e1": events[0],
-        "e2": events[1],
-        "e3": events[2],
+        "event": "",
     }
 
-    title = voice.fmt(rng.choice(TITLES), **ctx)
+    title = voice.fmt(template["title_he"], **ctx)
+    beats = template["beats"]
 
-    n_pages = rng.choice((5, 6, 6, 6, 7, 7))
-    event_frames = rng.sample(EVENT_FRAMES, 3)
-    opening = voice.fmt(rng.choice(OPENING_FRAMES), **ctx)
-    spark = rng.choice(SPARKS)
-    opening = f"{opening} {spark}"
-
-    pages: list[dict] = []
-
-    def add(kind: str, text: str) -> None:
-        pages.append({"t": " ".join(text.split()), "k": _pick_scene(text, kind), "p": kind})
-
-    add("open", opening)
-    if n_pages == 7:
-        add("bridge", voice.fmt(rng.choice(BRIDGE_FRAMES), **ctx))
-    for ev, frame in zip(events, event_frames):
-        add("event", voice.fmt(frame, event=ev, **ctx))
-    if n_pages >= 6:
-        add("arc", voice.fmt(rng.choice(ARC_FRAMES), **ctx))
+    kinds: list[tuple[str, str, str]] = []
+    kinds.append(("opening", beats["opening"], ""))
+    if age >= 8:
+        kinds.append(
+            (
+                "bridge",
+                f"{{name}} נשם{{sf}} והקשיב{{sf}}. {companion['he_the']} אמר שכדאי לשמוע את השבוע עד הסוף, בלי לדלג.",
+                "",
+            )
+        )
+    kinds.append(("event_1", beats["event_1"], events[0]))
+    kinds.append(("event_2", beats["event_2"], events[1]))
+    kinds.append(("event_3", beats["event_3"], events[2]))
+    if age <= 4:
+        merged = beats["turning"] + " " + beats["moral_landing"]
+        kinds.append(("moral_landing", merged, ""))
     else:
-        # Five-page book: fold the arc into the last event page, then a calm ending.
-        pages[-1]["t"] += " " + voice.fmt(rng.choice(ARC_FRAMES), **ctx)
-    add("end", voice.fmt(rng.choice(ENDING_FRAMES), **ctx))
-    if not (5 <= len(pages) <= 7):
-        raise RuntimeError(f"unexpected page count {len(pages)}")
+        kinds.append(("turning", beats["turning"], ""))
+        kinds.append(("moral_landing", beats["moral_landing"], ""))
+    kinds.append(("bedtime_close", beats["bedtime_close"], ""))
+
+    pages: list[dict[str, Any]] = []
+    theme = template.get("theme") or "garden"
+    base_prompt = template.get("illustration_prompt_en") or (
+        "children's picture book illustration, watercolor, warm light, child-safe, no text"
+    )
+
+    for kind, frame, ev in kinds:
+        extra = dict(ctx)
+        extra["event"] = ev
+        text = " ".join(voice.fmt(frame, **extra).split())
+        prompt = _page_prompt(base_prompt, kind, age, ev)
+        pages.append(
+            {
+                "t": text,
+                "k": _pick_scene(text, kind, theme),
+                "p": kind,
+                "pr": prompt,
+            }
+        )
+
+    n = len(pages)
+    if not (6 <= n <= 8):
+        raise RuntimeError(f"unexpected page count {n}")
+
+    _produced_fingerprints.add(fp)
 
     return {
-        "v": 1,
+        "v": 2,
         "name": name,
         "age": age,
         "gender": gender,
         "title": title,
         "seed": seed,
         "companion": companion["id"],
+        "template_id": template["id"],
+        "fingerprint": fp,
+        "moral": template.get("moral_he") or "",
+        "theme": theme,
+        "format": template.get("format") or "",
         "pages": pages,
     }
 
 
-
 def encode_story(story: dict) -> str:
-    raw = json.dumps(story, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    payload = {
+        "v": story.get("v", 2),
+        "name": story.get("name"),
+        "age": story.get("age"),
+        "gender": story.get("gender"),
+        "title": story.get("title"),
+        "seed": story.get("seed"),
+        "companion": story.get("companion"),
+        "template_id": story.get("template_id"),
+        "fingerprint": story.get("fingerprint"),
+        "moral": story.get("moral"),
+        "theme": story.get("theme"),
+        "format": story.get("format"),
+        "pages": story.get("pages"),
+    }
+    raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     token = base64.urlsafe_b64encode(zlib.compress(raw, 9)).decode("ascii")
     return token.rstrip("=")
 
@@ -376,5 +454,7 @@ def decode_story(token: str) -> dict:
     raw = zlib.decompress(base64.urlsafe_b64decode(token + pad))
     story = json.loads(raw.decode("utf-8"))
     if not isinstance(story, dict) or not story.get("pages"):
+        raise ValueError("invalid story")
+    if not story.get("title"):
         raise ValueError("invalid story")
     return story

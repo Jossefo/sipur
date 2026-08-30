@@ -19,7 +19,10 @@ from story_catalog import (
     THEMES,
     companion_by_id,
     make_template,
+    theme_by_id,
 )
+
+from narrative import choose_flavor_theme, classify_event, compose_pages
 
 ROOT = Path(__file__).resolve().parent
 TEMPLATES_PATH = ROOT / "data" / "templates.json"
@@ -229,6 +232,7 @@ def _pick_scene(text: str, page_kind: str, theme: str) -> str:
         (("בית ספר", "גננת", "כיתה", "מורה"), "school"),
         (("יום הולדת", "עוגת", "בלון", "מתנה"), "party"),
         (("כוכב", "ירח", "שמיים"), "sky"),
+        (("חושך", "פנס", "לילה"), "stars"),
         (("סבא", "סבתא", "משפחה"), "kitchen"),
         (("יער", "עץ", "עצים", "טיול"), "forest"),
     )
@@ -238,21 +242,25 @@ def _pick_scene(text: str, page_kind: str, theme: str) -> str:
     return theme or "garden"
 
 
-def _page_prompt(base: str, kind: str, age: int, event: str = "") -> str:
+def _page_prompt(base: str, kind: str, age: int, event: str = "", scene_en: str = "") -> str:
     extras = {
-        "opening": "gentle introduction at the start of evening, child arriving in the scene",
-        "event_1": "first story moment, child noticing something small and kind",
-        "event_2": "middle of the story, warm narrative scene",
-        "event_3": "third story moment, child holding a memory",
-        "turning": "quiet turning point, child realizing something gentle",
-        "moral_landing": "warm moral landing, peaceful understanding, no lecturing",
-        "bedtime_close": "bedtime close, child in bed, very calm, nightlight glow",
-        "bridge": "a quiet in-between moment on the way through the story",
+        "opening": "gentle introduction at the start of evening, child arriving in the scene of this real week",
+        "event_1": "first lived story scene from the child's actual week",
+        "event_2": "middle lived story scene from the child's actual week",
+        "event_3": "third lived story scene from the child's actual week",
+        "turning": "quiet turning point, child realizing how this week's real moments connect",
+        "moral_landing": "warm moral landing about this specific week, peaceful understanding, no lecturing",
+        "bedtime_close": "bedtime close, child in bed, very calm, nightlight glow, week's keepsakes nearby",
+        "bridge": "a quiet in-between moment connecting two real weekly scenes",
     }
     bit = extras.get(kind, "a warm story moment")
-    ev = ("scene suggesting: " + event[:80]) if event else ""
+    parts = [base, bit]
+    if scene_en:
+        parts.append(scene_en)
+    elif event:
+        parts.append("scene showing the real weekly moment: " + event[:80])
     return (
-        f"{base}, {bit} {ev}, child around age {age}, "
+        f"{', '.join(p for p in parts if p)}, child around age {age}, "
         "children's picture book illustration, watercolor, warm light, child-safe, "
         "no text, no watermark, not photorealistic, not horror"
     )
@@ -352,54 +360,41 @@ def generate_story(
     seed = rng.randint(1, 2**31 - 1)
     fp = make_fingerprint(name, age, events, template["id"])
 
-    ctx = {
-        "name": name,
-        "age": age,
-        "age_phrase": age_phrase(age, gender),
-        "companion": companion["he_the"],
-        "companion_he": companion["he"],
-        "event": "",
-    }
+    tags_list = [classify_event(e) for e in events]
+    theme_id = choose_flavor_theme(tags_list, template.get("theme") or "garden")
+    theme_obj = theme_by_id(theme_id)
 
-    title = voice.fmt(template["title_he"], **ctx)
-    beats = template["beats"]
+    composed = compose_pages(
+        name=name,
+        voice=voice,
+        age=age,
+        events=events,
+        companion=companion,
+        theme=theme_obj,
+        rng=rng,
+        template=template,
+    )
+    title = composed["title"]
+    moral_he = composed["moral_he"]
 
-    kinds: list[tuple[str, str, str]] = []
-    kinds.append(("opening", beats["opening"], ""))
-    if age >= 8:
-        kinds.append(
-            (
-                "bridge",
-                f"{{name}} נשם{{sf}} והקשיב{{sf}}. {companion['he_the']} אמר שכדאי לשמוע את השבוע עד הסוף, בלי לדלג.",
-                "",
-            )
-        )
-    kinds.append(("event_1", beats["event_1"], events[0]))
-    kinds.append(("event_2", beats["event_2"], events[1]))
-    kinds.append(("event_3", beats["event_3"], events[2]))
-    if age <= 4:
-        merged = beats["turning"] + " " + beats["moral_landing"]
-        kinds.append(("moral_landing", merged, ""))
-    else:
-        kinds.append(("turning", beats["turning"], ""))
-        kinds.append(("moral_landing", beats["moral_landing"], ""))
-    kinds.append(("bedtime_close", beats["bedtime_close"], ""))
-
-    pages: list[dict[str, Any]] = []
-    theme = template.get("theme") or "garden"
-    base_prompt = template.get("illustration_prompt_en") or (
-        "children's picture book illustration, watercolor, warm light, child-safe, no text"
+    base_prompt = (
+        "children's picture book illustration, watercolor, warm light, child-safe, "
+        "no text in the image, no logos, no watermark, not photorealistic, not horror, "
+        f"{theme_obj.get('prompt') or ''}, {companion.get('en') or 'a kind companion'} nearby"
     )
 
-    for kind, frame, ev in kinds:
-        extra = dict(ctx)
-        extra["event"] = ev
-        text = " ".join(voice.fmt(frame, **extra).split())
-        prompt = _page_prompt(base_prompt, kind, age, ev)
+    pages: list[dict[str, Any]] = []
+    theme = theme_id
+    for spec in composed["pages"]:
+        kind = spec["p"]
+        text = spec["t"]
+        ev = spec.get("event") or ""
+        scene_en = spec.get("scene_en") or ""
+        prompt = _page_prompt(base_prompt, kind, age, ev, scene_en)
         pages.append(
             {
                 "t": text,
-                "k": _pick_scene(text, kind, theme),
+                "k": spec.get("k") or _pick_scene(text, kind, theme),
                 "p": kind,
                 "pr": prompt,
             }
@@ -421,7 +416,7 @@ def generate_story(
         "companion": companion["id"],
         "template_id": template["id"],
         "fingerprint": fp,
-        "moral": template.get("moral_he") or "",
+        "moral": moral_he,
         "theme": theme,
         "format": template.get("format") or "",
         "pages": pages,

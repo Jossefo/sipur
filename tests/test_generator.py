@@ -126,3 +126,60 @@ def test_validation():
     assert validate_input("", 6, ["א", "ב", "ג"])
     assert validate_input("נועה", 2, ["אחד", "שניים", "שלוש"])
     assert not validate_input("נועה", 6, ["איבדה שן", "אפתה עם סבתא", "פחדה מהחושך"])
+
+
+def test_noa_is_real_narrative_not_template_paste():
+    story = _story()
+    text = story_plain_text(story)
+    assert "קרה דבר אמיתי" not in text
+    assert "בתחנה הראשונה" not in text
+    assert "על המפה הופיע" not in text
+    events = ["איבדה שן", "אפתה עם סבתא", "פחדה מהחושך"]
+    by_kind = {p["p"]: p["t"] for p in story["pages"]}
+    for i, ev in enumerate(events, start=1):
+        page = by_kind[f"event_{i}"]
+        assert ev in page
+        assert len(page) > len(ev) + 40
+        assert f": {ev}" not in page
+        assert f":{ev}" not in page
+
+
+def test_noa_moral_connects_the_week():
+    story = _story()
+    turning = " ".join(
+        p["t"] for p in story["pages"] if p["p"] in {"turning", "moral_landing"}
+    )
+    blob = (story["moral"] or "") + " " + turning
+    groups = [
+        any(w in blob for w in ("שן", "פה", "גוף")),
+        any(w in blob for w in ("סבתא", "עוגה", "אפה", "אפתה", "קמח")),
+        any(w in blob for w in ("חושך", "אור")),
+    ]
+    assert sum(groups) >= 2
+    meaning = ("משתנה", "זמן", "לחכות", "לבקש", "גדל", "גדול", "אור קטן", "מותר", "מבקשים")
+    assert any(w in blob for w in meaning)
+
+
+def test_event_pages_expand_the_event_into_a_scene():
+    story = _story()
+    events = ["איבדה שן", "אפתה עם סבתא", "פחדה מהחושך"]
+    for i, ev in enumerate(events, start=1):
+        page = next(p for p in story["pages"] if p["p"] == f"event_{i}")
+        assert ev in page["t"]
+        assert len(page["t"]) > len(ev)
+        # lived scene: child doing/feeling, not just the raw string
+        assert "נועה" in page["t"]
+        assert page["t"].count(".") >= 2
+
+
+def test_illustration_prompts_describe_actual_scenes():
+    story = _story()
+    e1 = next(p for p in story["pages"] if p["p"] == "event_1")
+    e2 = next(p for p in story["pages"] if p["p"] == "event_2")
+    e3 = next(p for p in story["pages"] if p["p"] == "event_3")
+    assert "tooth" in e1["pr"].lower()
+    assert any(w in e2["pr"].lower() for w in ("kitchen", "cake", "grandm", "bak"))
+    assert any(w in e3["pr"].lower() for w in ("dark", "night", "light"))
+    # not only a generic contradicting quest backdrop
+    for p in (e1, e2, e3):
+        assert "lost a tooth" in p["pr"].lower() or "baked with" in p["pr"].lower() or "afraid of the dark" in p["pr"].lower() or "tooth" in p["pr"].lower() or "kitchen" in p["pr"].lower() or "dark" in p["pr"].lower()

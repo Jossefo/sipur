@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}סיפור — סיפור לילה טוב, שנכתב עליהם{% endblock %}</title>
+  <meta name="description" content="{% block description %}כותבים שם, גיל ושלושה דברים מהשבוע. מקבלים סיפור מאויר בעברית לקריאה יחד במיטה.{% endblock %}" />
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;800&family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="logo" href="{{ url_for('home') }}" aria-label="סיפור, חזרה לבית">סיפור</a>
+      {% block header_extra %}{% endblock %}
+    </header>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer">
+      <p>סיפור · סיפור לילה טוב, שנכתב עליהם</p>
+      <p class="price-note">₪49 לחודש · סיפור אחד כל שבוע, כשזה יתאים לכם</p>
+    </footer>
+  </div>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

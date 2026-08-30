@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}הסיפור לא נמצא — סיפור{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <h1>הסיפור הזה לא נמצא.</h1>
+  <p class="lead">אולי הקישור נקטע. אפשר לצור סיפור חדש.</p>
+  <a class="btn" href="{{ url_for('create_get') }}">לצור סיפור</a>
+</section>
+{% endblock %}

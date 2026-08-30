@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ story.title }} — סיפור{% endblock %}
+{% block description %}סיפור לילה טוב ל{{ story.name }}{% endblock %}
+{% block header_extra %}
+<button class="btn ghost" type="button" data-share>לשתף קישור</button>
+{% endblock %}
+{% block content %}
+<article class="reader" data-reader data-pages="{{ pages|length }}">
+  <header class="reader-head">
+    <h1>{{ story.title }}</h1>
+    <p class="story-meta">{{ story.name }}, {{ story.age }}</p>
+  </header>
+
+  {% for page in pages %}
+  <section class="book-page{% if loop.first %} is-on{% endif %}" data-page="{{ loop.index0 }}" {% if not loop.first %}hidden{% endif %}>
+    <div class="page-art">{{ page.svg|safe }}</div>
+    <p class="page-text">{{ page.text }}</p>
+    <p class="page-num">{{ loop.index }} / {{ pages|length }}</p>
+  </section>
+  {% endfor %}
+
+  <nav class="reader-nav" aria-label="עמודי הסיפור">
+    <button class="btn ghost" type="button" data-prev disabled>הקודם</button>
+    <div class="dots" role="tablist" aria-label="בחירת עמוד">
+      {% for page in pages %}
+      <button type="button" class="dot{% if loop.first %} is-on{% endif %}" data-goto="{{ loop.index0 }}" aria-label="עמוד {{ loop.index }}"></button>
+      {% endfor %}
+    </div>
+    <button class="btn" type="button" data-next>הבא</button>
+  </nav>
+
+  <p class="reader-actions">
+    <a class="btn ghost" href="{{ url_for('create_get') }}">לצור סיפור נוסף</a>
+  </p>
+  <p class="share-status" data-share-status hidden></p>
+</article>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="kicker">סיפור לילה טוב, שנכתב עליהם</p>
+    <h1>השבוע שלהם, בסיפור לפני השינה.</h1>
+    <p class="lead">שם, גיל, ושלושה דברים שקרו. סיפור מאויר בעברית, עם התחלה, אמצע, ולילה טוב.</p>
+    <a class="btn" href="{{ url_for('create_get') }}">לצור סיפור</a>
+  </div>
+  <aside class="hero-card" aria-hidden="true">
+    <svg class="hero-art" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="hsky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fde7d2"/>
+          <stop offset="1" stop-color="#c9846a"/>
+        </linearGradient>
+      </defs>
+      <rect width="800" height="500" fill="url(#hsky)"/>
+      <circle cx="160" cy="110" r="42" fill="#fff6ea"/>
+      <circle cx="176" cy="104" r="34" fill="#c9846a"/>
+      <path d="M0,360 C180,300 320,400 500,330 C640,280 740,360 800,320 L800,500 L0,500 Z" fill="#6b3a28" opacity=".45"/>
+      <rect x="470" y="90" width="210" height="250" rx="18" fill="#2b2218" opacity=".18"/>
+      <rect x="482" y="102" width="186" height="226" rx="12" fill="#9a4318" opacity=".5"/>
+      <rect x="90" y="340" width="360" height="80" rx="24" fill="#5c3d3a"/>
+      <rect x="110" y="314" width="320" height="60" rx="22" fill="#c45c26"/>
+    </svg>
+    <p class="story-title">נועה והירח שלא מיהר</p>
+    <p class="story-meta">סיפור אחד, מהשבוע שלהם</p>
+  </aside>
+</section>
+<section class="quiet-steps">
+  <h2>שלושה צעדים</h2>
+  <div class="steps">
+    <article class="card"><span class="num">01</span><h3>כותבים</h3><p>שם, גיל, ושלושה דברים קטנים מהשבוע.</p></article>
+    <article class="card"><span class="num">02</span><h3>נוצר סיפור</h3><p>חמישה עד שבעה עמודים, בעברית רכה, עם איורים.</p></article>
+    <article class="card"><span class="num">03</span><h3>קוראים במיטה</h3><p>כמו ספר תמונות. אפשר גם לשתף קישור.</p></article>
+  </div>
+</section>
+{% endblock %}

@@ -1,6 +1,7 @@
 services:
   - type: web
     name: sipur
-    runtime: static
-    buildCommand: "true"
-    staticPublishPath: .
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -b 0.0.0.0:$PORT app:app

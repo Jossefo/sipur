@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}לצור סיפור — סיפור{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p class="kicker">השבוע שלהם</p>
+  <h1>שלושה דברים, וסיפור נולד.</h1>
+  <p class="lead">כל פרט נכנס לסיפור. לא תבנית זהה, לא אותו טקסט פעמיים.</p>
+
+  {% if errors %}
+  <ul class="errors" role="alert">
+    {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <form class="story-form" method="post" action="{{ url_for('create_post') }}" novalidate data-validate>
+    <label>
+      <span>שם הילד או הילדה</span>
+      <input name="name" type="text" maxlength="40" required minlength="2" value="{{ values.name }}" autocomplete="nickname" />
+    </label>
+    <label>
+      <span>גיל</span>
+      <select name="age" required>
+        <option value="" disabled {% if not values.age %}selected{% endif %}>בחרו גיל</option>
+        {% for a in range(3, 10) %}
+        <option value="{{ a }}" {% if values.age|string == a|string %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <fieldset>
+      <legend>שלושה דברים שקרו השבוע</legend>
+      <label>
+        <span>דבר ראשון</span>
+        <input name="event1" type="text" maxlength="120" required minlength="2" value="{{ values.event1 }}" placeholder="למשל: איבדה שן" />
+      </label>
+      <label>
+        <span>דבר שני</span>
+        <input name="event2" type="text" maxlength="120" required minlength="2" value="{{ values.event2 }}" placeholder="למשל: אפתה עם סבתא" />
+      </label>
+      <label>
+        <span>דבר שלישי</span>
+        <input name="event3" type="text" maxlength="120" required minlength="2" value="{{ values.event3 }}" placeholder="למשל: קצת פחדה מהחושך" />
+      </label>
+    </fieldset>
+    <button class="btn" type="submit">לכתוב את הסיפור</button>
+  </form>
+</section>
+{% endblock %}

@@ -104,7 +104,7 @@
         let saved = [];
         try { saved = JSON.parse(localStorage.getItem("sipur.library.v1") || "[]"); } catch (_) { /* Optional */ }
         if (!Array.isArray(saved)) saved = [];
-        const book = await runEngine({action:"generate",values:{name:values.get("name").trim(),age:values.get("age"),events:[1,2,3].map(n=>values.get("event"+n).trim())},
+        const book = await runEngine({action:"generate",values:{name:values.get("name").trim(),age:values.get("age"),gender:values.get("gender"),events:[1,2,3].map(n=>values.get("event"+n).trim())},
           used_templates:saved.map(b=>b.template).filter(Boolean),used_fingerprints:saved.map(b=>b.fingerprint).filter(Boolean)});
         try { sessionStorage.setItem("sipur.current",JSON.stringify(book)); } catch (_) { /* Shared links still work. */ }
         location.assign(new URL("reader.html",base).href + "#" + book.token);

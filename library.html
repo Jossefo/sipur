@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" data-static="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#153e40" />
+  <meta name="referrer" content="no-referrer" />
+  <title>הספרים שלי — סיפור</title>
+  <meta name="description" content="שלושה רגעים מהשבוע הופכים לספר לילה טוב מאויר בעברית. פרויקט עצמאי, בלי הרשמה ובלי מפתח API." />
+  <link rel="icon" href="./static/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./static/css/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">דלגו לתוכן</a>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="logo" href="./index.html" aria-label="סיפור, חזרה לבית"><span class="logo-moon" aria-hidden="true">☾</span> סיפור<span class="logo-caption">רגע קטן. עולם שלם.</span></a>
+      <nav class="site-nav" aria-label="ניווט ראשי">
+        <a href="./reader.html">סיפור לדוגמה</a>
+        <a href="./library.html">הספרים שלי</a>
+        <a class="nav-create" href="./create.html">סיפור חדש <span aria-hidden="true">＋</span></a>
+      </nav>
+    </header>
+    <main id="main">
+<section class="library-panel">
+  <div class="section-heading"><div><p class="kicker">המדף הקטן שלנו</p><h1>הספרים שלי</h1><p class="lead">כל הרגעים שהפכו לסיפור, במקום אחד.</p></div><a class="btn" href="./create.html">סיפור חדש ＋</a></div>
+  <p class="library-info">הספרים נשמרים בדפדפן במכשיר הזה. מחיקת נתוני הדפדפן מוחקת גם את הספרייה.</p>
+  <div class="library-grid" data-library></div>
+  <div class="library-empty" data-library-empty hidden><img src="./static/images/paper-boat.webp" width="768" height="512" alt="סירת נייר מחכה להרפתקה" /><h2>המדף עוד מחכה לסיפור הראשון.</h2><p>שלושה רגעים מהשבוע, וספר חדש מצטרף לספרייה.</p><a class="btn" href="./create.html">בואו ניצור סיפור ←</a></div>
+  <p class="library-info" data-library-status role="status" hidden></p>
+</section>
+</main>
+    <footer class="site-footer">
+      <div><a class="footer-logo" href="./index.html">☾ סיפור</a><p>מהיום שהיה, ללילה של דמיון.</p></div>
+      <div class="footer-links"><a href="./privacy.html">פרטיות ושיתוף</a><a href="https://github.com/Jossefo/sipur" target="_blank" rel="noopener noreferrer">הקוד ב־GitHub ↗</a><span>פרויקט עצמאי · ללא תשלום</span></div>
+    </footer>
+  </div>
+  <script src="./static/js/app.js" defer></script>
+  <script src="./static/js/pages.js" defer></script>
+</body>
+</html>

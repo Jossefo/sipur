@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import random
-from urllib.parse import quote
 from xml.sax.saxutils import escape
 
 
@@ -308,6 +307,12 @@ def page_svg(page: dict, name: str, seed: int, companion: str, index: int) -> st
     gid = f"g{index}"
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="איור לעמוד הסיפור">
   <defs>
+    <filter id="paper-{gid}" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.09"/></feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="multiply"/>
+    </filter>
     <linearGradient id="sky-{gid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="{pal["sky1"]}"/>
       <stop offset="1" stop-color="{pal["sky2"]}"/>
@@ -321,6 +326,7 @@ def page_svg(page: dict, name: str, seed: int, companion: str, index: int) -> st
   <rect width="800" height="500" fill="url(#glow-{gid})" opacity="0.55"/>
   {body}
   {friend}
+  <rect width="800" height="500" fill="#f7efdf" opacity="0.4" filter="url(#paper-{gid})"/>
 </svg>'''
 
 
@@ -482,22 +488,12 @@ def page_seed(seed: int, index: int, prompt: str) -> int:
 
 
 def page_image_url(page: dict, seed: int, index: int, age: int = 6) -> str:
-    prompt = (page.get("pr") or page.get("prompt") or "").strip()
-    required = (
-        "children's picture book illustration, watercolor, warm light, child-safe, "
-        "no text, no watermark, not photorealistic, not horror"
-    )
-    low = prompt.lower()
-    if "picture book" not in low or "watercolor" not in low:
-        prompt = f"{required}, {prompt}".strip(", ")
-        low = prompt.lower()
-    if "child-safe" not in low:
-        prompt = prompt + ", child-safe"
-    prompt = prompt + f", child around age {age}"
-    encoded = quote(prompt, safe="")
-    det = page_seed(int(seed or 1), index, prompt)
-    return (
-        f"https://image.pollinations.ai/prompt/{encoded}"
-        f"?width=1024&height=640&seed={det}&nologo=true&model=flux"
-    )
-
+    """Serve bundled artwork. Never send story content to an image service."""
+    scene = page.get("k") or ""
+    if scene in {"forest", "orchard", "garden", "park"}:
+        return "/static/images/lantern-forest.webp"
+    if scene in {"sea", "riverbank"}:
+        return "/static/images/paper-boat.webp"
+    if scene in {"bedtime", "sky", "stars", "blanket"}:
+        return "/static/images/bedtime-world.webp"
+    return ""

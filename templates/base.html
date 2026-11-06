@@ -3,33 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}סיפור — סיפור לילה טוב, שנכתב עליהם{% endblock %}</title>
-  <meta name="description" content="{% block description %}כותבים שם, גיל ושלושה דברים מהשבוע. מקבלים סיפור מאויר בעברית, עם מוסר השכל חינוכי, לקריאה יחד במיטה.{% endblock %}" />
+  <meta name="theme-color" content="#153e40" />
+  <meta name="referrer" content="no-referrer" />
+  <title>{% block title %}סיפור — רגעים קטנים, סיפורים גדולים{% endblock %}</title>
+  <meta name="description" content="{% block description %}שלושה רגעים מהשבוע הופכים לספר לילה טוב מאויר בעברית. פרויקט עצמאי, בלי הרשמה ובלי מפתח API.{% endblock %}" />
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;800&family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 </head>
 <body>
+  <a class="skip-link" href="#main">דלגו לתוכן</a>
   <div class="wrap">
     <header class="site-header">
-      <a class="logo" href="{{ url_for('home') }}" aria-label="סיפור, חזרה לבית">סיפור</a>
+      <a class="logo" href="{{ url_for('home') }}" aria-label="סיפור, חזרה לבית"><span class="logo-moon" aria-hidden="true">☾</span> סיפור<span class="logo-caption">רגע קטן. עולם שלם.</span></a>
       <nav class="site-nav" aria-label="ניווט ראשי">
-        <a href="{{ url_for('home') }}">בית</a>
+        <a href="{{ url_for('demo') }}">סיפור לדוגמה</a>
         <a href="{{ url_for('library') }}">הספרים שלי</a>
-        <a href="{{ url_for('create_get') }}">סיפור חדש</a>
+        <a class="nav-create" href="{{ url_for('create_get') }}">סיפור חדש <span aria-hidden="true">＋</span></a>
       </nav>
-      {% block header_extra %}{% endblock %}
     </header>
-    <main>
-      {% block content %}{% endblock %}
-    </main>
+    <main id="main">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
-      <p>סיפור · סיפור לילה טוב, שנכתב עליהם</p>
-      <p class="price-note">₪49 לחודש · סיפור אחד כל שבוע, כשזה יתאים לכם</p>
+      <div><a class="footer-logo" href="{{ url_for('home') }}">☾ סיפור</a><p>מהיום שהיה, ללילה של דמיון.</p></div>
+      <div class="footer-links"><a href="{{ url_for('privacy') }}">פרטיות ושיתוף</a><a href="https://github.com/Jossefo/sipur" target="_blank" rel="noopener noreferrer">הקוד ב־GitHub ↗</a><span>פרויקט עצמאי · ללא תשלום</span></div>
     </footer>
   </div>
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </body>
 </html>

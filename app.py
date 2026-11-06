@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import os
-from datetime import datetime, timezone
-from pathlib import Path
+from collections import deque
+from functools import lru_cache
+import random
+import re
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, url_for
 
@@ -19,9 +20,28 @@ from story_generator import (
 )
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
 
-FEEDBACK: list[dict] = []
-FEEDBACK_PATH = Path(__file__).resolve().parent / "data" / "feedback.jsonl"
+# Anonymous, bounded and ephemeral: never retain story tokens or free-text notes.
+FEEDBACK: deque[dict] = deque(maxlen=200)
+
+
+@app.after_request
+def privacy_headers(response):
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; img-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; script-src 'self'; "
+        "connect-src 'self'; object-src 'none'; base-uri 'self'; "
+        "form-action 'self'; frame-ancestors 'none'"
+    )
+    if request.path.startswith(("/s/", "/api/", "/create", "/library")):
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
 
 
 def _form_values(req=None) -> dict:
@@ -29,6 +49,7 @@ def _form_values(req=None) -> dict:
     return {
         "name": (src.get("name") or "").strip(),
         "age": src.get("age") or "",
+        "gender": src.get("gender") if src.get("gender") in ("f", "m") else "",
         "event1": (src.get("event1") or "").strip(),
         "event2": (src.get("event2") or "").strip(),
         "event3": (src.get("event3") or "").strip(),
@@ -40,13 +61,12 @@ def _decorate_pages(story: dict) -> list[dict]:
     name = story.get("name") or ""
     seed = int(story.get("seed") or 1)
     companion = story.get("companion") or "moon"
-    age = int(story.get("age") or 6)
     for i, page in enumerate(story.get("pages") or []):
         pages.append(
             {
                 "text": page.get("t") or "",
                 "svg": page_svg(page, name, seed, companion, i),
-                "image_url": page_image_url(page, seed, i, age=age),
+                "image_url": page_image_url(page, seed, i),
                 "kind": page.get("p") or "",
             }
         )
@@ -70,7 +90,7 @@ def create_post():
     errors = validate_input(values["name"], values["age"], events)
     if errors:
         return render_template("create.html", errors=errors, values=values), 400
-    story = generate_story(values["name"], int(values["age"]), events)
+    story = generate_story(values["name"], int(values["age"]), events, gender=values["gender"])
     token = encode_story(story)
     return redirect(url_for("story_page", token=token))
 
@@ -84,7 +104,29 @@ def story_page(token: str):
     pages = _decorate_pages(story)
     if not pages:
         abort(404)
-    return render_template("story.html", story=story, pages=pages, token=token)
+    return render_template("story.html", story=story, pages=pages, token=token, is_demo=False)
+
+
+
+@app.get("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+@lru_cache(maxsize=2)
+def _demo_story(world):
+    events = (["טיילה ביער עם המשפחה", "עזרה לחבר למצוא את הדרך", "הקשיבה לציפורים"]
+              if world == "forest" else
+              ["השיטה סירת נייר", "חיכתה בסבלנות על החוף", "עזרה לחבר לאסוף צדפים"])
+    return generate_story("נועה", 6, events, rng=random.Random(42 if world == "forest" else 73))
+
+
+@app.get("/demo")
+def demo():
+    world = "sea" if request.args.get("world") == "sea" else "forest"
+    story = _demo_story(world)
+    return render_template("story.html", story=story, pages=_decorate_pages(story),
+                           token=encode_story(story), is_demo=True)
 
 
 @app.get("/library")
@@ -104,34 +146,20 @@ def api_catalog():
 
 @app.post("/api/feedback")
 def api_feedback_post():
-    data = request.get_json(silent=True) or {}
-    rating = str(data.get("rating") or "").strip()[:40]
-    if rating not in {"אהבתי", "פחות אהבתי", "loved", "less"}:
-        # still accept Hebrew product ratings and a couple of aliases
-        if not rating:
-            return jsonify({"ok": False, "error": "rating required"}), 400
-    item = {
-        "token": str(data.get("token") or "")[:8000],
-        "rating": rating,
-        "note": str(data.get("note") or "")[:500],
-        "template_id": str(data.get("template_id") or "")[:200],
-        "ts": datetime.now(timezone.utc).isoformat(),
-    }
-    FEEDBACK.append(item)
-    try:
-        FEEDBACK_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with FEEDBACK_PATH.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(item, ensure_ascii=False) + "\n")
-    except OSError:
-        pass
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "JSON object required"}), 400
+    rating = data.get("rating")
+    template_id = data.get("template_id", "")
+    if rating not in ("אהבתי", "פחות אהבתי", "loved", "less"):
+        return jsonify({"ok": False, "error": "invalid rating"}), 400
+    if not isinstance(template_id, str) or not re.fullmatch(r"[a-z0-9-]{0,100}", template_id):
+        return jsonify({"ok": False, "error": "invalid template"}), 400
+    FEEDBACK.append({"rating": rating, "template_id": template_id})
     return jsonify({"ok": True})
 
 
-@app.get("/api/feedback")
-def api_feedback_get():
-    return jsonify(list(reversed(FEEDBACK[-50:])))
-
-
+# No public GET endpoint: feedback must never expose children's stories.
 @app.errorhandler(404)
 def not_found(_e):
     return render_template("404.html"), 404

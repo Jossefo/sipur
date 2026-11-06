@@ -341,9 +341,15 @@ def generate_story(
     rng: random.Random | None = None,
     used_template_ids: Iterable[str] | None = None,
     used_fingerprints: Iterable[str] | None = None,
+    gender: str | None = None,
 ) -> dict[str, Any]:
     """Return a 6–8 page story dict. Same fingerprint is never produced twice."""
     rng = rng or random.Random(secrets.randbits(64))
+    errors = validate_input(name, age, events)
+    if errors:
+        raise ValueError(" ".join(errors))
+    if gender not in (None, "", "f", "m"):
+        raise ValueError("invalid story voice")
     name = _clean(name, 40)
     age = int(age)
     events = [_clean(e, 120) for e in list(events)[:3]]
@@ -354,7 +360,7 @@ def generate_story(
     used_fps = set(used_fingerprints or [])
     template = pick_template(age, name, events, rng, used_tids, used_fps)
 
-    gender = guess_gender(name, rng)
+    gender = gender or guess_gender(name, rng)
     voice = Voice(gender)
     companion = companion_by_id(template.get("companion") or "moon")
     seed = rng.randint(1, 2**31 - 1)
@@ -407,7 +413,7 @@ def generate_story(
     _produced_fingerprints.add(fp)
 
     return {
-        "v": 2,
+        "v": 3,
         "name": name,
         "age": age,
         "gender": gender,
@@ -418,7 +424,8 @@ def generate_story(
         "fingerprint": fp,
         "moral": moral_he,
         "theme": theme,
-        "format": template.get("format") or "",
+        "format": "planned-memory-book",
+        "narrative_plan": composed["plan"],
         "pages": pages,
     }
 
@@ -445,11 +452,37 @@ def encode_story(story: dict) -> str:
 
 
 def decode_story(token: str) -> dict:
-    pad = "=" * (-len(token) % 4)
-    raw = zlib.decompress(base64.urlsafe_b64decode(token + pad))
-    story = json.loads(raw.decode("utf-8"))
-    if not isinstance(story, dict) or not story.get("pages"):
+    if not isinstance(token, str) or not 1 <= len(token) <= 12000:
+        raise ValueError("invalid story token")
+    try:
+        pad = "=" * (-len(token) % 4)
+        compressed = base64.b64decode(token + pad, altchars=b"-_", validate=True)
+        decoder = zlib.decompressobj()
+        raw = decoder.decompress(compressed, 64 * 1024 + 1)
+        if len(raw) > 64 * 1024 or not decoder.eof or decoder.unused_data:
+            raise ValueError("story too large or malformed")
+        story = json.loads(raw.decode("utf-8"))
+    except (ValueError, zlib.error, UnicodeError) as exc:
+        raise ValueError("invalid story") from exc
+    if not isinstance(story, dict):
         raise ValueError("invalid story")
-    if not story.get("title"):
-        raise ValueError("invalid story")
+    if not isinstance(story.get("title"), str) or not 1 <= len(story["title"]) <= 200:
+        raise ValueError("invalid title")
+    if not isinstance(story.get("name"), str) or not 1 <= len(story["name"]) <= 40:
+        raise ValueError("invalid name")
+    if type(story.get("age")) is not int or not 3 <= story["age"] <= 9:
+        raise ValueError("invalid age")
+    if type(story.get("seed")) is not int or not 0 <= story["seed"] < 2**128:
+        raise ValueError("invalid seed")
+    pages = story.get("pages")
+    if not isinstance(pages, list) or not 1 <= len(pages) <= 12:
+        raise ValueError("invalid pages")
+    for page in pages:
+        if not isinstance(page, dict) or not isinstance(page.get("t"), str) or len(page["t"]) > 3000:
+            raise ValueError("invalid page")
+        if any(not isinstance(v, str) or len(v) > 3000 for v in page.values()):
+            raise ValueError("invalid page values")
+    for key in ("gender", "companion", "template_id", "fingerprint", "moral", "theme", "format"):
+        if key in story and (not isinstance(story[key], str) or len(story[key]) > 1000):
+            raise ValueError("invalid story metadata")
     return story

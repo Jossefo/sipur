@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" data-static="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#153e40" />
+  <meta name="referrer" content="no-referrer" />
+  <title>סיפור חדש — סיפור</title>
+  <meta name="description" content="שלושה רגעים מהשבוע הופכים לספר לילה טוב מאויר בעברית. פרויקט עצמאי, בלי הרשמה ובלי מפתח API." />
+  <link rel="icon" href="./static/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;800&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./static/css/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">דלגו לתוכן</a>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="logo" href="./index.html" aria-label="סיפור, חזרה לבית"><span class="logo-moon" aria-hidden="true">☾</span> סיפור<span class="logo-caption">רגע קטן. עולם שלם.</span></a>
+      <nav class="site-nav" aria-label="ניווט ראשי">
+        <a href="./reader.html">סיפור לדוגמה</a>
+        <a href="./library.html">הספרים שלי</a>
+        <a class="nav-create" href="./create.html">סיפור חדש <span aria-hidden="true">＋</span></a>
+      </nav>
+    </header>
+    <main id="main">
+<section class="create-layout">
+  <aside class="form-aside"><p class="kicker">העמוד הראשון מתחיל כאן</p><h1>מה קרה<br /> <em>השבוע שלהם?</em></h1><p>לא צריך אירוע גדול. לפעמים סיפור שלם מתחיל בשן שנפלה או בחיבוק קטן.</p><img src="./static/images/lantern-forest.webp" alt="שביל קטן אל תוך יער של דמיון" width="768" height="512" /><p class="aside-caption">אתם מביאים את הרגעים. אנחנו מוסיפים דמיון.</p></aside>
+  <div class="form-panel">
+    <div class="form-topline"><span>הסיפור שלכם</span><span aria-hidden="true">✦</span></div>
+    <h2>נעים להכיר את גיבורי הסיפור.</h2>
+    <p class="muted">כמה פרטים קטנים, וההרפתקה מתחילה.</p>
+    
+    <form class="story-form" method="post" action="./create.html" data-validate>
+      <div class="identity-fields"><label><span>שם הילד או הילדה</span><input name="name" type="text" maxlength="40" required minlength="2" value="" placeholder="למשל: נועה" autocomplete="off" /></label><label><span>גיל</span><select name="age" required><option value="" disabled selected>בחרו גיל</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option></select></label></div>
+      <label><span>לשון הסיפור</span><select name="gender" required><option value="f" selected>לשון נקבה — היא</option><option value="m" >לשון זכר — הוא</option></select></label>
+      <fieldset><legend>שלושה רגעים מהשבוע</legend><p class="field-hint">כתבו במשפט קצר מה קרה, בדיוק במילים שלכם.</p>
+        
+        <label class="event-label"><span><i aria-hidden="true">01</i> רגע ראשון</span><input name="event1" type="text" maxlength="120" required minlength="2" value="" placeholder="למשל: חלקתי צבע עם חבר" /></label>
+        <label class="event-label"><span><i aria-hidden="true">02</i> רגע שני</span><input name="event2" type="text" maxlength="120" required minlength="2" value="" placeholder="למשל: אפיתי עוגה עם סבתא" /></label>
+        <label class="event-label"><span><i aria-hidden="true">03</i> רגע שלישי</span><input name="event3" type="text" maxlength="120" required minlength="2" value="" placeholder="למשל: למדתי לרכוב על אופניים" /></label>
+      </fieldset>
+      <p class="privacy-note">כדאי להשתמש בשם פרטי או בכינוי, בלי פרטים רגישים. קישור לסיפור מכיל את תוכנו; כל מי שמקבל אותו יכול לקרוא. <a href="./privacy.html">איך זה עובד?</a></p>
+      <button class="btn submit-btn" type="submit"><span data-submit-label>ניצור את הסיפור שלהם</span><span aria-hidden="true">✦</span></button>
+      <p class="form-status" data-form-status role="status" hidden></p>
+    </form>
+  </div>
+</section>
+</main>
+    <footer class="site-footer">
+      <div><a class="footer-logo" href="./index.html">☾ סיפור</a><p>מהיום שהיה, ללילה של דמיון.</p></div>
+      <div class="footer-links"><a href="./privacy.html">פרטיות ושיתוף</a><a href="https://github.com/Jossefo/sipur" target="_blank" rel="noopener noreferrer">הקוד ב־GitHub ↗</a><span>פרויקט עצמאי · ללא תשלום</span></div>
+    </footer>
+  </div>
+  <script src="./static/js/app.js" defer></script>
+  <script src="./static/js/pages.js" defer></script>
+</body>
+</html>

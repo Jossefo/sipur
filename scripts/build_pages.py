@@ -43,5 +43,5 @@ for world in ('forest','sea'):
     art = [{'svg':page_svg(p,story['name'],story['seed'],story.get('companion') or 'moon',i),
             'image':page_image_url(p,story['seed'],i)} for i,p in enumerate(story['pages'])]
     (ROOT/'data'/f'demo-{world}.json').write_text(json.dumps({'story':story,'token':encode_story(story),'art':art},ensure_ascii=False),encoding='utf-8')
-(ROOT/'.nojekyll').touch()
+(ROOT/'.nojekyll').write_text('Static site; no Jekyll processing.\n', encoding='utf-8')
 print('Built 5 Pages documents and 2 fictional demo books.')

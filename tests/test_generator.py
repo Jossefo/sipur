@@ -183,3 +183,11 @@ def test_illustration_prompts_describe_actual_scenes():
     # not only a generic contradicting quest backdrop
     for p in (e1, e2, e3):
         assert "lost a tooth" in p["pr"].lower() or "baked with" in p["pr"].lower() or "afraid of the dark" in p["pr"].lower() or "tooth" in p["pr"].lower() or "kitchen" in p["pr"].lower() or "dark" in p["pr"].lower()
+
+
+def test_water_tag_does_not_match_hebrew_plural_endings():
+    from narrative import classify_event
+    for event in ("שיחקה עם חברים", "טיילה בין העצים", "הקשיבה לציפורים", "הביטה בשמים"):
+        assert "water" not in classify_event(event)
+    for event in ("שחתה בים", "שיחקה במים", "הים היה שקט"):
+        assert "water" in classify_event(event)

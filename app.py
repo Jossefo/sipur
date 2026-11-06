@@ -49,6 +49,7 @@ def _form_values(req=None) -> dict:
     return {
         "name": (src.get("name") or "").strip(),
         "age": src.get("age") or "",
+        "gender": src.get("gender") if src.get("gender") in ("f", "m") else "",
         "event1": (src.get("event1") or "").strip(),
         "event2": (src.get("event2") or "").strip(),
         "event3": (src.get("event3") or "").strip(),
@@ -89,7 +90,7 @@ def create_post():
     errors = validate_input(values["name"], values["age"], events)
     if errors:
         return render_template("create.html", errors=errors, values=values), 400
-    story = generate_story(values["name"], int(values["age"]), events)
+    story = generate_story(values["name"], int(values["age"]), events, gender=values["gender"])
     token = encode_story(story)
     return redirect(url_for("story_page", token=token))
 

@@ -6,7 +6,7 @@
 
 Turn three moments from a child's week into an illustrated Hebrew bedtime book.
 
-**Hebrew & RTL · Ages 3–9 · 270 story templates · No signup · No runtime API keys**
+**Hebrew & RTL · Ages 3–9 · Fact-aware story planning · No signup · No runtime API keys**
 
 [**Open Sipur ↗**](https://jossefo.github.io/sipur/) · [What it does](#a-little-week-a-whole-world) · [See the app](#a-look-inside) · [Run locally](#run-locally) · [Privacy](#privacy-by-design-and-its-limits)
 
@@ -20,7 +20,7 @@ A lost tooth. Baking with Grandma. Making a new friend. Sipur turns those small,
 
 The experience is deliberately simple: enter a first name or nickname, an age, and three moments; then read together. The full public app runs on GitHub Pages: no account, payment flow, backend server, or language-model service is required.
 
-- **Stories grounded in the week.** An event-driven Hebrew narrative engine combines concrete events with 270 templates, age-aware language, companions, settings, and morals.
+- **Stories grounded in the week.** The Hebrew engine first extracts event facts and outcomes, chooses a shared question, then renders a connected bedtime narrative. Negation, disagreement, loss and unresolved problems are preserved. Ages 3–4 receive six shorter pages; ages 5–9 receive eight. Parents choose the Hebrew grammatical voice.
 - **Original visual world.** Three bundled, AI-generated gouache-style illustrations and a procedural SVG scene library, served locally. No image hotlinks or external image generation at runtime.
 - **A proper little reader.** Page controls, keyboard navigation, touch swipes on artwork, reading progress, night mode, and a print layout for the full book.
 - **Your own shelf.** Books are saved in the current browser, with individual removal. The fictional demo never adds itself to your library. Library metadata helps avoid repeating a template across sessions on that device.
@@ -28,7 +28,7 @@ The experience is deliberately simple: enter a first name or nickname, an age, a
 
 ## A look inside
 
-These are actual local app captures, using fictional sample data.
+These are actual local app captures, using fictional sample data. Reader captures show the initial visual release; the current narrative engine is documented in the quality samples below.
 
 <table>
 <tr><th>Made for small screens</th><th>The illustrated reader</th></tr>
@@ -91,7 +91,7 @@ python app.py
 
 Open [localhost:3000](http://localhost:3000). Try `/demo` for a fictional example, `/create` for your own story, or `/library` for your saved books.
 
-The 270-template catalog is included. To rebuild it:
+The legacy 270-entry catalog is retained for cover companions, visual variation and compatibility. It does **not** represent 270 independently written plots. The new planner controls the prose. To rebuild the catalog:
 
 ```bash
 python scripts/build_templates.py
@@ -102,7 +102,7 @@ python scripts/build_templates.py
 ```text
 First name / nickname + age + 3 weekly moments
                       ↓
-Hebrew event classification + template selection
+Hebrew facts + outcome analysis → narrative plan → checked prose
                       ↓
 Concrete scenes → gentle turning point → bedtime ending
                       ↓
@@ -135,7 +135,7 @@ pytest -q
 node --check static/js/app.js
 ```
 
-The suite covers story generation, weekly-event relevance, Hebrew theme classification, share-link round trips, malformed payloads, decompression limits, private headers, bundled images, anonymous feedback and request size limits.
+The 62-test suite includes 120 generated regression samples and covers story generation, weekly-event relevance, Hebrew theme classification, share-link round trips, malformed payloads, decompression limits, private headers, bundled images, anonymous feedback and request size limits.
 
 ## Deploy on Render
 
@@ -152,3 +152,9 @@ This is a server-rendered Flask application; it requires a Python web service. N
 ---
 
 <div align="center">מהיום שהיה, ללילה של דמיון. ☾<br />From the day that was, to a night of imagination.</div>
+
+## Narrative quality
+
+[Read six complete fictional sample books and the quality report](docs/story-quality.md). The planner gives each book one bedtime setting, three explicitly remembered events, a guiding question and a closing choice. It does not invent a real-world chronology between unrelated memories. Reconciliation is only used when supplied after a conflict; an unresolved problem is allowed to remain open.
+
+This is a bounded, rule-based Hebrew storyteller, not a general language model. It currently uses a memory-book frame; unusual phrasing, sarcasm, complex relationships and nuanced negation can still exceed its rules. Automated checks protect structure and known regressions; they cannot certify literary quality or understand every sentence. A broader Hebrew parent/editor review and ongoing regression examples are still needed before claiming production-level narrative quality. No external model, account or API key is required.

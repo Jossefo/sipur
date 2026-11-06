@@ -26,6 +26,7 @@ def browser_book(raw):
         if errors:
             raise ValueError(' '.join(errors))
         story = generate_story(values['name'], int(values['age']), values['events'],
+                               gender=values.get('gender'),
                                used_template_ids=data.get('used_templates', []),
                                used_fingerprints=data.get('used_fingerprints', []))
     else:

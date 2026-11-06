@@ -5,7 +5,7 @@ def test_home_ok(client):
     r = client.get("/")
     assert r.status_code == 200
     html = r.data.decode("utf-8")
-    assert "לצור סיפור" in html
+    assert "בואו ניצור סיפור" in html
     assert 'dir="rtl"' in html
     assert "וואטסאפ" not in html
     assert "הספרים שלי" in html
@@ -48,9 +48,9 @@ def test_create_redirects_to_shareable_story(client):
     assert "אפתה עם סבתא" in html
     assert "פחדה מהחושך" in html
     assert "<svg" in html
-    assert "לצור סיפור נוסף" in html
+    assert "ליצור סיפור נוסף" in html
     assert "אהבתי" in html
-    assert "pollinations.ai" in html
+    assert "pollinations.ai" not in html
     assert "מוסר השכל" in html
 
 
@@ -99,7 +99,7 @@ def test_library_page(client):
     assert r.status_code == 200
     html = r.data.decode("utf-8")
     assert "הספרים שלי" in html
-    assert "לצור סיפור" in html
+    assert "בואו ניצור סיפור" in html
 
 
 def test_two_submissions_differ(client):
@@ -136,7 +136,7 @@ def test_illustrations_are_inline_svg_not_hotlinked(client):
     assert "unsplash" not in html.lower()
     assert "placehold" not in html.lower()
     assert "http://images" not in html.lower()
-    assert "image.pollinations.ai" in html
+    assert "image.pollinations.ai" not in html
 
 
 def test_feedback_roundtrip(client):
@@ -166,8 +166,54 @@ def test_feedback_roundtrip(client):
     assert posted.status_code == 200
     assert posted.get_json()["ok"] is True
     listing = client.get("/api/feedback")
-    assert listing.status_code == 200
-    rows = listing.get_json()
-    assert rows
-    assert rows[0]["rating"] == "אהבתי"
-    assert rows[0]["template_id"] == story["template_id"]
+    assert listing.status_code == 405
+    from app import FEEDBACK
+    assert FEEDBACK[-1] == {"rating": "אהבתי", "template_id": story["template_id"]}
+    assert "token" not in FEEDBACK[-1]
+    assert "note" not in FEEDBACK[-1]
+
+
+def test_feedback_rejects_invalid_shapes_and_ratings(client):
+    for payload in ([], {"rating": "unknown"}, {"rating": []}, {"rating": "loved", "template_id": "contains personal data"}):
+        assert client.post("/api/feedback", json=payload).status_code == 400
+
+
+def test_story_privacy_headers_and_local_art(client):
+    page = client.get("/demo")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'data-demo="true"' in html
+    assert "pollinations.ai" not in html
+    import re
+    images = re.findall(r'<img[^>]+src="([^"]+)"', html)
+    assert images
+    for src in images:
+        assert src.startswith("/static/images/")
+        assert client.get(src).status_code == 200
+    token = re.search(r'data-token="([^"]+)"', html).group(1)
+    private = client.get("/s/" + token)
+    assert private.headers["Referrer-Policy"] == "no-referrer"
+    assert private.headers["Cache-Control"] == "private, no-store"
+    assert private.headers["X-Robots-Tag"] == "noindex, nofollow"
+    assert "frame-ancestors 'none'" in private.headers["Content-Security-Policy"]
+
+
+def test_malformed_story_payloads_are_404(client):
+    import base64, json, zlib
+    from app import _demo_story
+    valid = _demo_story("forest")
+    payloads = [dict(valid, age="broken"), dict(valid, seed=[]), dict(valid, pages=[{"t": "ok", "k": []}]), dict(valid, pages="wrong")]
+    for payload in payloads:
+        token = base64.urlsafe_b64encode(zlib.compress(json.dumps(payload).encode())).decode().rstrip("=")
+        assert client.get("/s/" + token).status_code == 404
+    bomb = base64.urlsafe_b64encode(zlib.compress(b"a" * 1000000)).decode().rstrip("=")
+    assert client.get("/s/" + bomb).status_code == 404
+
+
+def test_request_size_limit(client):
+    assert client.post("/api/feedback", data="a" * 20000, content_type="application/json").status_code == 413
+
+
+def test_public_pages(client):
+    for path in ("/", "/create", "/library", "/privacy", "/demo", "/demo?world=sea"):
+        assert client.get(path).status_code == 200

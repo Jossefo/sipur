@@ -10,6 +10,7 @@
     {% if errors %}<ul class="errors" role="alert" tabindex="-1">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     <form class="story-form" method="post" action="{{ url_for('create_post') }}" data-validate>
       <div class="identity-fields"><label><span>שם הילד או הילדה</span><input name="name" type="text" maxlength="40" required minlength="2" value="{{ values.name }}" placeholder="למשל: נועה" autocomplete="off" /></label><label><span>גיל</span><select name="age" required><option value="" disabled {% if not values.age %}selected{% endif %}>בחרו גיל</option>{% for a in range(3, 10) %}<option value="{{ a }}" {% if values.age|string == a|string %}selected{% endif %}>{{ a }}</option>{% endfor %}</select></label></div>
+      <label><span>לשון הסיפור</span><select name="gender" required><option value="f" {% if values.gender != 'm' %}selected{% endif %}>לשון נקבה — היא</option><option value="m" {% if values.gender == 'm' %}selected{% endif %}>לשון זכר — הוא</option></select></label>
       <fieldset><legend>שלושה רגעים מהשבוע</legend><p class="field-hint">כתבו במשפט קצר מה קרה, בדיוק במילים שלכם.</p>
         {% for n, hint in [(1, 'למשל: חלקתי צבע עם חבר'), (2, 'למשל: אפיתי עוגה עם סבתא'), (3, 'למשל: למדתי לרכוב על אופניים')] %}
         <label class="event-label"><span><i aria-hidden="true">0{{ n }}</i> רגע {{ ['ראשון', 'שני', 'שלישי'][n-1] }}</span><input name="event{{ n }}" type="text" maxlength="120" required minlength="2" value="{{ values['event' ~ n] }}" placeholder="{{ hint }}" /></label>{% endfor %}

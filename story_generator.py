@@ -341,9 +341,15 @@ def generate_story(
     rng: random.Random | None = None,
     used_template_ids: Iterable[str] | None = None,
     used_fingerprints: Iterable[str] | None = None,
+    gender: str | None = None,
 ) -> dict[str, Any]:
     """Return a 6–8 page story dict. Same fingerprint is never produced twice."""
     rng = rng or random.Random(secrets.randbits(64))
+    errors = validate_input(name, age, events)
+    if errors:
+        raise ValueError(" ".join(errors))
+    if gender not in (None, "", "f", "m"):
+        raise ValueError("invalid story voice")
     name = _clean(name, 40)
     age = int(age)
     events = [_clean(e, 120) for e in list(events)[:3]]
@@ -354,7 +360,7 @@ def generate_story(
     used_fps = set(used_fingerprints or [])
     template = pick_template(age, name, events, rng, used_tids, used_fps)
 
-    gender = guess_gender(name, rng)
+    gender = gender or guess_gender(name, rng)
     voice = Voice(gender)
     companion = companion_by_id(template.get("companion") or "moon")
     seed = rng.randint(1, 2**31 - 1)
@@ -407,7 +413,7 @@ def generate_story(
     _produced_fingerprints.add(fp)
 
     return {
-        "v": 2,
+        "v": 3,
         "name": name,
         "age": age,
         "gender": gender,
@@ -418,7 +424,8 @@ def generate_story(
         "fingerprint": fp,
         "moral": moral_he,
         "theme": theme,
-        "format": template.get("format") or "",
+        "format": "planned-memory-book",
+        "narrative_plan": composed["plan"],
         "pages": pages,
     }
 

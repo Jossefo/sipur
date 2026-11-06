@@ -479,4 +479,3 @@ def decode_story(token: str) -> dict:
         if key in story and (not isinstance(story[key], str) or len(story[key]) > 1000):
             raise ValueError("invalid story metadata")
     return story
-

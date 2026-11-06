@@ -2,13 +2,10 @@
 {% block title %}הספרים שלי — סיפור{% endblock %}
 {% block content %}
 <section class="library-panel">
-  <p class="kicker">הספרייה</p>
-  <h1>הספרים שלי</h1>
-  <p class="lead">כל ספר שנוצר נשמר כאן, במכשיר הזה. אותו ספר לא נשמר פעמיים.</p>
+  <div class="section-heading"><div><p class="kicker">המדף הקטן שלנו</p><h1>הספרים שלי</h1><p class="lead">כל הרגעים שהפכו לסיפור, במקום אחד.</p></div><a class="btn" href="{{ url_for('create_get') }}">סיפור חדש ＋</a></div>
+  <p class="library-info">הספרים נשמרים בדפדפן במכשיר הזה. מחיקת נתוני הדפדפן מוחקת גם את הספרייה.</p>
   <div class="library-grid" data-library></div>
-  <div class="library-empty" data-library-empty hidden>
-    <p>עוד אין ספרים. בואו נכתוב את הראשון.</p>
-    <a class="btn" href="{{ url_for('create_get') }}">לצור סיפור</a>
-  </div>
+  <div class="library-empty" data-library-empty hidden><img src="{{ url_for('static', filename='images/paper-boat.webp') }}" width="768" height="512" alt="סירת נייר מחכה להרפתקה" /><h2>המדף עוד מחכה לסיפור הראשון.</h2><p>שלושה רגעים מהשבוע, וספר חדש מצטרף לספרייה.</p><a class="btn" href="{{ url_for('create_get') }}">בואו ניצור סיפור ←</a></div>
+  <p class="library-info" data-library-status role="status" hidden></p>
 </section>
 {% endblock %}

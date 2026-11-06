@@ -271,7 +271,12 @@ def classify_event(text: str) -> list[str]:
     raw = text or ""
     tags: list[str] = []
     for tag, words in TAG_DEFS:
-        if any(w in raw for w in words):
+        # Short water words must be words, not the plural ending in חברים/עצים.
+        def matches(word):
+            if word in {"ים", "מים"}:
+                return bool(re.search(r"(?<![א-ת])[ובכלמה]{0,3}" + re.escape(word) + r"(?![א-ת])", raw))
+            return word in raw
+        if any(matches(w) for w in words):
             tags.append(tag)
     if not tags:
         tags.append("everyday")

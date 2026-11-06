@@ -34,6 +34,7 @@
     
     <form class="story-form" method="post" action="./create.html" data-validate>
       <div class="identity-fields"><label><span>שם הילד או הילדה</span><input name="name" type="text" maxlength="40" required minlength="2" value="" placeholder="למשל: נועה" autocomplete="off" /></label><label><span>גיל</span><select name="age" required><option value="" disabled selected>בחרו גיל</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option></select></label></div>
+      <label><span>לשון הסיפור</span><select name="gender" required><option value="f" selected>לשון נקבה — היא</option><option value="m" >לשון זכר — הוא</option></select></label>
       <fieldset><legend>שלושה רגעים מהשבוע</legend><p class="field-hint">כתבו במשפט קצר מה קרה, בדיוק במילים שלכם.</p>
         
         <label class="event-label"><span><i aria-hidden="true">01</i> רגע ראשון</span><input name="event1" type="text" maxlength="120" required minlength="2" value="" placeholder="למשל: חלקתי צבע עם חבר" /></label>
